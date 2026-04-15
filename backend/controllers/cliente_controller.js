@@ -1,5 +1,5 @@
-const ClienteModel = require("../models/cliente.model");
-const AppError = require("../exceptions/AppError"); // Importamos nuestra clase
+const ClienteModel = require("../models/cliente_model");
+const AppError = require("../exceptions/AppError");
 
 const registrarCliente = async (req, res, next) => {
   try {

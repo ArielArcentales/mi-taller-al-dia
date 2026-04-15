@@ -3,8 +3,8 @@ const cors = require("cors");
 require("dotenv").config();
 
 const db = require("./config/db");
-const clientesRoutes = require("./routes/clientes.routes");
-
+const clientesRoutes = require("./routes/clientes_routes");
+const usuarioRoutes = require("./routes/usuario_routes");
 const globalExceptionHandler = require("./exceptions/handlers/globalExceptionHandler");
 
 const app = express();
@@ -18,6 +18,7 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api/clientes", clientesRoutes);
+app.use("/api/usuarios", usuarioRoutes);
 
 app.use(globalExceptionHandler);
 
