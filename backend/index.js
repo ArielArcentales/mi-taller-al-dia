@@ -7,6 +7,7 @@ const clientesRoutes = require("./routes/clientes_routes");
 const usuarioRoutes = require("./routes/usuario_routes");
 const inventarioRoutes = require("./routes/inventario_routes");
 const trabajosRoutes = require("./routes/trabajos_routes");
+const dashboardRoutes = require("./routes/dashboard_routes");
 const globalExceptionHandler = require("./exceptions/handlers/globalExceptionHandler");
 
 const app = express();
@@ -23,6 +24,7 @@ app.use("/api/clientes", clientesRoutes);
 app.use("/api/usuarios", usuarioRoutes);
 app.use("/api/inventario", inventarioRoutes);
 app.use("/api/trabajos", trabajosRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 app.use(globalExceptionHandler);
 
 app.listen(PORT, () => {
