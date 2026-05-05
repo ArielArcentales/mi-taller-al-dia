@@ -1,5 +1,26 @@
+/* 1. Importamos la fuente desde Google Fonts (Debe ir siempre hasta arriba) */
+@import url("https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&display=swap");
+
 @import "tailwindcss";
 
+/* 2. Definición de tu paleta y tipografía */
+@theme {
+  /* Tus colores oficiales */
+  --color-taller-100: #d9ed92;
+  --color-taller-200: #b5e48c;
+  --color-taller-300: #99d98c;
+  --color-taller-400: #76c893;
+  --color-taller-500: #52b69a;
+  --color-taller-600: #34a0a4;
+  --color-taller-700: #168aad;
+  --color-taller-800: #1a759f;
+  --color-taller-900: #1e6091;
+  --color-taller-950: #184e77;
+
+  /* Tu nueva tipografía elegante */
+  --font-dm: "DM Serif Display", serif;
+}
+
 body {
-  @apply bg-slate-50 text-slate-900;
+  @apply bg-slate-100;
 }
