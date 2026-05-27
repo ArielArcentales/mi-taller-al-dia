@@ -4,6 +4,7 @@ import Login from "./pages/Login";
 import DashboardLayout from "./components/DashboardLayout";
 import DashboardInicio from "./pages/DashboardInicio";
 import Clientes from "./pages/Clientes";
+import Trabajos from "./pages/Trabajos";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -28,6 +29,7 @@ function App() {
 
         {/* Ruta del módulo de clientes */}
         <Route path="clientes" element={<Clientes />} />
+        <Route path="trabajos" element={<Trabajos />} />
       </Route>
 
       {/* Ruta 404: Si escriben una URL que no existe, los manda al login */}

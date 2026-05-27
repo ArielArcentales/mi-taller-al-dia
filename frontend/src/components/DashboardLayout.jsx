@@ -58,9 +58,7 @@ const DashboardLayout = () => {
 
   return (
     <>
-      {isLoggingOut && (
-        <PantallaCarga texto="¡Hasta pronto! Cerrando sesión de forma segura..." />
-      )}
+      {isLoggingOut && <PantallaCarga texto="Cerrando Sesión" />}
 
       <div className="min-h-screen bg-slate-100 flex overflow-hidden">
         {/* FONDO OSCURO PARA MÓVILES (Aparece cuando el menú está abierto) */}

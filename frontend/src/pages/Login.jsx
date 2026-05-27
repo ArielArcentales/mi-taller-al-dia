@@ -216,7 +216,7 @@ const Login = () => {
                 {isLoading ? (
                   <>
                     <Loader2 className="animate-spin" size={32} />
-                    <span>Iniciando...</span>
+                    <span>Iniciando</span>
                   </>
                 ) : (
                   <span>Iniciar Sesión</span>
