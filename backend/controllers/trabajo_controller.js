@@ -98,8 +98,72 @@ const actualizarEstadoTrabajo = async (req, res, next) => {
   }
 };
 
+// Controlador para procesar la edición de detalles de un trabajo
+const editarDetallesTrabajo = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const {
+      descripcion_producto,
+      descripcion_reparacion,
+      precio,
+      abono,
+      fecha_entrega_prometida,
+    } = req.body;
+
+    // Validación de negocio: El abono no puede superar el precio modificado
+    if (abono > precio) {
+      return next(
+        new AppError("El abono no puede ser mayor al precio total", 400),
+      );
+    }
+
+    const trabajoActualizado = await TrabajoModel.editarTrabajo(
+      id,
+      descripcion_producto,
+      descripcion_reparacion,
+      precio,
+      abono || 0.0,
+      fecha_entrega_prometida || null,
+    );
+
+    if (!trabajoActualizado) {
+      return next(
+        new AppError("El trabajo no fue encontrado para editar", 404),
+      );
+    }
+
+    res.status(200).json({
+      mensaje: "Detalles del trabajo actualizados con éxito",
+      trabajo: trabajoActualizado,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Controlador para manejar la eliminación/anulación de un trabajo
+const eliminarOrdenTrabajo = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const trabajoEliminado = await TrabajoModel.eliminarTrabajo(id);
+
+    if (!trabajoEliminado) {
+      return next(new AppError("El trabajo no existe o ya fue eliminado", 404));
+    }
+
+    res.status(200).json({
+      mensaje: "Orden de trabajo anulada correctamente",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   registrarTrabajo,
   obtenerTrabajos,
   actualizarEstadoTrabajo,
+  editarDetallesTrabajo,
+  eliminarOrdenTrabajo,
 };

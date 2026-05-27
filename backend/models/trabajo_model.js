@@ -54,8 +54,52 @@ const actualizarEstado = async (id, nuevoEstado) => {
   return result.rows[0];
 };
 
+// Función para actualizar todos los detalles de un trabajo específico
+const editarTrabajo = async (
+  id,
+  desc_prod,
+  desc_rep,
+  precio,
+  abono,
+  fecha_entrega,
+) => {
+  const query = `
+    UPDATE trabajos 
+    SET descripcion_producto = $1, 
+        descripcion_reparacion = $2, 
+        precio = $3, 
+        abono = $4, 
+        fecha_entrega_prometida = $5,
+        ultima_actualizacion = CURRENT_TIMESTAMP
+    WHERE id_trabajo = $6
+    RETURNING *;
+  `;
+  const result = await db.query(query, [
+    desc_prod,
+    desc_rep,
+    precio,
+    abono,
+    fecha_entrega,
+    id,
+  ]);
+  return result.rows[0];
+};
+
+// Función para eliminar un trabajo de la base de datos
+const eliminarTrabajo = async (id) => {
+  const query = `
+    DELETE FROM trabajos 
+    WHERE id_trabajo = $1 
+    RETURNING *;
+  `;
+  const result = await db.query(query, [id]);
+  return result.rows[0];
+};
+
 module.exports = {
   crearTrabajo,
   obtenerTrabajos,
   actualizarEstado,
+  editarTrabajo,
+  eliminarTrabajo,
 };
