@@ -1,13 +1,37 @@
 import { Routes, Route, Navigate } from "react-router-dom";
+
 import Login from "./pages/Login";
-import Dashboard from "./pages/Dashboard";
+import DashboardLayout from "./components/DashboardLayout";
+import DashboardInicio from "./pages/DashboardInicio";
+import Clientes from "./pages/Clientes";
+
+import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
   return (
     <Routes>
+      {/* Rutas Públicas */}
       <Route path="/" element={<Navigate to="/login" replace />} />
       <Route path="/login" element={<Login />} />
-      <Route path="/dashboard" element={<Dashboard />} />
+
+      {/* Rutas Privadas*/}
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout />
+          </ProtectedRoute>
+        }
+      >
+        {/* Vista por defecto al entrar a /dashboard */}
+        <Route index element={<DashboardInicio />} />
+
+        {/* Ruta del módulo de clientes */}
+        <Route path="clientes" element={<Clientes />} />
+      </Route>
+
+      {/* Ruta 404: Si escriben una URL que no existe, los manda al login */}
+      <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   );
 }
