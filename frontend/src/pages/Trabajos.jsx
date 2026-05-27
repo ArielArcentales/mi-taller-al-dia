@@ -9,6 +9,9 @@ import {
   CheckCircle2,
   Clock,
   ChevronRight,
+  Edit2,
+  Trash2,
+  X,
 } from "lucide-react";
 import axios from "axios";
 
@@ -17,7 +20,9 @@ const Trabajos = () => {
   const [trabajos, setTrabajos] = useState([]);
   const [filtroEstado, setFiltroEstado] = useState("");
 
-  const [nuevoTrabajo, setNuevoTrabajo] = useState({
+  const [idEdicion, setIdEdicion] = useState(null);
+
+  const [formulario, setFormulario] = useState({
     id_cliente: "",
     descripcion_producto: "",
     descripcion_reparacion: "",
@@ -75,45 +80,106 @@ const Trabajos = () => {
         ),
       );
     } catch (error) {
-      console.error("Error al cambiar estado:", error);
+      console.error(error);
       alert("No se pudo actualizar el estado");
     }
   };
 
-  const registrarTrabajo = async (e) => {
-    e.preventDefault();
-    setGuardando(true);
+  //Eliminar Trabajo
+  const eliminarTrabajo = async (id) => {
+    if (
+      !window.confirm(
+        "¿Estás seguro de que deseas anular esta orden de trabajo? Esta acción no se puede deshacer.",
+      )
+    ) {
+      return;
+    }
     try {
       const token = localStorage.getItem("token");
-      await axios.post(
-        "http://localhost:3000/api/trabajos",
-        {
-          ...nuevoTrabajo,
-          precio: parseFloat(nuevoTrabajo.precio),
-          abono: nuevoTrabajo.abono ? parseFloat(nuevoTrabajo.abono) : 0,
-        },
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
-
-      setMensaje({ texto: "Orden creada con éxito", tipo: "exito" });
-      setNuevoTrabajo({
-        id_cliente: "",
-        descripcion_producto: "",
-        descripcion_reparacion: "",
-        precio: "",
-        abono: "",
-        fecha_entrega_prometida: "",
+      await axios.delete(`http://localhost:3000/api/trabajos/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
-      obtenerDatos(filtroEstado);
+      setTrabajos(trabajos.filter((t) => t.id_trabajo !== id));
     } catch (error) {
-      console.error(error);
+      alert(error.response?.data?.mensaje || "Error al eliminar la orden");
+    }
+  };
+
+  // HU-24: Preparar el formulario para edición
+  const iniciarEdicion = (trabajo) => {
+    setIdEdicion(trabajo.id_trabajo);
+    setFormulario({
+      id_cliente: trabajo.id_cliente,
+      descripcion_producto: trabajo.descripcion_producto,
+      descripcion_reparacion: trabajo.descripcion_reparacion,
+      precio: trabajo.precio,
+      abono: trabajo.abono,
+
+      fecha_entrega_prometida: trabajo.fecha_entrega_prometida
+        ? trabajo.fecha_entrega_prometida.split("T")[0]
+        : "",
+    });
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const cancelarEdicion = () => {
+    setIdEdicion(null);
+    setFormulario({
+      id_cliente: "",
+      descripcion_producto: "",
+      descripcion_reparacion: "",
+      precio: "",
+      abono: "",
+      fecha_entrega_prometida: "",
+    });
+    setMensaje({ texto: "", tipo: "" });
+  };
+
+  // Esta sirve tanto para CREAR como para ACTUALIZAR
+  const guardarTrabajo = async (e) => {
+    e.preventDefault();
+    setGuardando(true);
+    setMensaje({ texto: "", tipo: "" });
+
+    try {
+      const token = localStorage.getItem("token");
+      const headers = { Authorization: `Bearer ${token}` };
+      const payload = {
+        ...formulario,
+        precio: parseFloat(formulario.precio),
+        abono: formulario.abono ? parseFloat(formulario.abono) : 0,
+      };
+
+      if (idEdicion) {
+        // Modo Edición
+        await axios.put(
+          `http://localhost:3000/api/trabajos/${idEdicion}`,
+          payload,
+          { headers },
+        );
+        setMensaje({
+          texto: "¡Orden actualizada correctamente!",
+          tipo: "exito",
+        });
+      } else {
+        // Modo Creación
+        await axios.post("http://localhost:3000/api/trabajos", payload, {
+          headers,
+        });
+        setMensaje({ texto: "¡Orden creada con éxito!", tipo: "exito" });
+      }
+
+      cancelarEdicion();
+      obtenerDatos(filtroEstado); // Recargamos la lista
+    } catch (error) {
       setMensaje({
-        texto: error.response?.data?.mensaje || "Error",
+        texto: error.response?.data?.mensaje || "Error al guardar",
         tipo: "error",
       });
     } finally {
       setGuardando(false);
-      setTimeout(() => setMensaje({ texto: "", tipo: "" }), 3000);
+      setTimeout(() => setMensaje({ texto: "", tipo: "" }), 4000);
     }
   };
 
@@ -154,27 +220,47 @@ const Trabajos = () => {
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-        {/* FORMULARIO */}
-        <div className="xl:col-span-1 bg-white p-6 rounded-2xl shadow-sm border border-slate-200 h-fit sticky top-8">
-          <h3 className="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-2">
-            <Plus className="text-taller-500" /> Nuevo Ingreso
-          </h3>
+        {/* PANEL IZQUIERDO: FORMULARIO */}
+        <div
+          className={`xl:col-span-1 p-6 rounded-2xl shadow-sm border h-fit sticky top-8 transition-colors ${idEdicion ? "bg-blue-50 border-blue-200" : "bg-white border-slate-200"}`}
+        >
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+              {idEdicion ? (
+                <Edit2 className="text-blue-600" />
+              ) : (
+                <Plus className="text-taller-500" />
+              )}
+              {idEdicion ? `Editar Orden #${idEdicion}` : "Nuevo Ingreso"}
+            </h3>
+            {idEdicion && (
+              <button
+                onClick={cancelarEdicion}
+                className="p-2 text-slate-500 hover:bg-blue-100 rounded-full transition-colors"
+                title="Cancelar edición"
+              >
+                <X size={24} />
+              </button>
+            )}
+          </div>
+
           {mensaje.texto && (
             <div
-              className={`p-4 rounded-xl mb-6 font-bold ${mensaje.tipo === "exito" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}
+              className={`p-4 rounded-xl mb-6 font-bold flex items-center gap-2 ${mensaje.tipo === "exito" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}
             >
-              {mensaje.texto}
+              <AlertCircle size={20} /> {mensaje.texto}
             </div>
           )}
-          <form onSubmit={registrarTrabajo} className="space-y-4">
+
+          <form onSubmit={guardarTrabajo} className="space-y-4">
             <select
               name="id_cliente"
               required
-              value={nuevoTrabajo.id_cliente}
+              value={formulario.id_cliente}
               onChange={(e) =>
-                setNuevoTrabajo({ ...nuevoTrabajo, id_cliente: e.target.value })
+                setFormulario({ ...formulario, id_cliente: e.target.value })
               }
-              className="w-full p-4 text-lg border-2 rounded-xl outline-none focus:border-taller-500"
+              className="w-full p-4 text-lg border-2 rounded-xl outline-none focus:border-blue-500 bg-white"
             >
               <option value="">Seleccionar Cliente...</option>
               {clientes.map((c) => (
@@ -188,74 +274,77 @@ const Trabajos = () => {
               name="descripcion_producto"
               required
               placeholder="¿Qué zapato es?"
-              value={nuevoTrabajo.descripcion_producto}
+              value={formulario.descripcion_producto}
               onChange={(e) =>
-                setNuevoTrabajo({
-                  ...nuevoTrabajo,
+                setFormulario({
+                  ...formulario,
                   descripcion_producto: e.target.value,
                 })
               }
-              className="w-full p-4 text-lg border-2 rounded-xl outline-none focus:border-taller-500"
+              className="w-full p-4 text-lg border-2 rounded-xl outline-none focus:border-blue-500"
             />
             <textarea
               name="descripcion_reparacion"
               required
               placeholder="Detalle de la reparación..."
-              value={nuevoTrabajo.descripcion_reparacion}
+              value={formulario.descripcion_reparacion}
               onChange={(e) =>
-                setNuevoTrabajo({
-                  ...nuevoTrabajo,
+                setFormulario({
+                  ...formulario,
                   descripcion_reparacion: e.target.value,
                 })
               }
-              className="w-full p-4 text-lg border-2 rounded-xl outline-none focus:border-taller-500 resize-none h-24"
+              className="w-full p-4 text-lg border-2 rounded-xl outline-none focus:border-blue-500 resize-none h-24"
             />
             <div className="grid grid-cols-2 gap-4">
               <input
                 type="number"
                 name="precio"
                 required
+                step="0.01"
                 placeholder="Precio $"
-                value={nuevoTrabajo.precio}
+                value={formulario.precio}
                 onChange={(e) =>
-                  setNuevoTrabajo({ ...nuevoTrabajo, precio: e.target.value })
+                  setFormulario({ ...formulario, precio: e.target.value })
                 }
-                className="w-full p-4 text-lg border-2 rounded-xl outline-none focus:border-taller-500"
+                className="w-full p-4 text-lg border-2 rounded-xl outline-none focus:border-blue-500"
               />
               <input
                 type="number"
                 name="abono"
+                step="0.01"
                 placeholder="Abono $"
-                value={nuevoTrabajo.abono}
+                value={formulario.abono}
                 onChange={(e) =>
-                  setNuevoTrabajo({ ...nuevoTrabajo, abono: e.target.value })
+                  setFormulario({ ...formulario, abono: e.target.value })
                 }
-                className="w-full p-4 text-lg border-2 rounded-xl outline-none focus:border-taller-500"
+                className="w-full p-4 text-lg border-2 rounded-xl outline-none focus:border-blue-500"
               />
             </div>
             <input
               type="date"
               name="fecha_entrega_prometida"
-              value={nuevoTrabajo.fecha_entrega_prometida}
+              value={formulario.fecha_entrega_prometida}
               onChange={(e) =>
-                setNuevoTrabajo({
-                  ...nuevoTrabajo,
+                setFormulario({
+                  ...formulario,
                   fecha_entrega_prometida: e.target.value,
                 })
               }
-              className="w-full p-4 text-lg border-2 rounded-xl outline-none focus:border-taller-500"
+              className="w-full p-4 text-lg border-2 rounded-xl outline-none focus:border-blue-500"
             />
+
             <button
               disabled={guardando}
-              className="w-full py-4 bg-taller-950 text-white rounded-xl text-xl font-bold hover:bg-taller-800 transition-colors flex justify-center items-center gap-2"
+              className={`w-full py-4 text-white rounded-xl text-xl font-bold transition-colors flex justify-center items-center gap-2 ${idEdicion ? "bg-blue-600 hover:bg-blue-700" : "bg-taller-950 hover:bg-taller-800"}`}
             >
-              {guardando ? <Loader2 className="animate-spin" /> : <Save />}{" "}
-              Registrar Orden
+              {guardando ? <Loader2 className="animate-spin" /> : <Save />}
+              {idEdicion ? "Actualizar Orden" : "Registrar Orden"}
             </button>
           </form>
         </div>
 
-        {/* LISTADO DINÁMICO */}
+        {/* PANEL DERECHO: LISTADO */}
         <div className="xl:col-span-2 space-y-6">
           <div className="flex gap-2 overflow-x-auto pb-2">
             {["", "Pendiente", "En Proceso", "Listo", "Entregado"].map(
@@ -287,6 +376,9 @@ const Trabajos = () => {
                     >
                       {t.estado.toUpperCase()}
                     </span>
+                    <span className="text-slate-400 font-bold text-sm">
+                      #{t.id_trabajo}
+                    </span>
                     {esAtrasado(t.fecha_entrega_prometida) &&
                       t.estado !== "Entregado" && (
                         <span className="flex items-center gap-1 text-red-600 font-bold text-sm animate-pulse">
@@ -308,7 +400,25 @@ const Trabajos = () => {
                 </div>
 
                 <div className="flex flex-col justify-between items-end gap-4 min-w-50">
-                  <div className="text-right">
+                  <div className="text-right flex flex-col items-end">
+                    {/* Botones de Acción (Editar / Eliminar) */}
+                    <div className="flex gap-2 mb-2">
+                      <button
+                        onClick={() => iniciarEdicion(t)}
+                        className="p-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+                        title="Editar detalles"
+                      >
+                        <Edit2 size={18} />
+                      </button>
+                      <button
+                        onClick={() => eliminarTrabajo(t.id_trabajo)}
+                        className="p-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                        title="Anular orden"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+
                     <p className="text-3xl font-black text-slate-800">
                       ${parseFloat(t.precio).toFixed(2)}
                     </p>
@@ -329,16 +439,13 @@ const Trabajos = () => {
                   </div>
 
                   <div className="w-full">
-                    <p className="text-xs font-bold text-slate-400 mb-2 uppercase text-right">
-                      Cambiar estado:
-                    </p>
                     <div className="flex gap-1 justify-end">
                       {["Pendiente", "En Proceso", "Listo", "Entregado"].map(
                         (est) => (
                           <button
                             key={est}
                             onClick={() => cambiarEstado(t.id_trabajo, est)}
-                            title={est}
+                            title={`Mover a ${est}`}
                             className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${t.estado === est ? "bg-taller-600 text-white scale-110 shadow-md" : "bg-slate-200 text-slate-400 hover:bg-slate-300"}`}
                           >
                             {est === "Listo" ? (
