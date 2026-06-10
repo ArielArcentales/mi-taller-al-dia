@@ -73,7 +73,13 @@ const actualizarEstadoTrabajo = async (req, res, next) => {
     const { id } = req.params;
     const { estado } = req.body;
 
-    const estadosValidos = ["Pendiente", "En Proceso", "Listo", "Entregado"];
+    const estadosValidos = [
+      "Pendiente",
+      "En Proceso",
+      "Listo",
+      "Entregado",
+      "Anulado",
+    ];
     if (!estadosValidos.includes(estado)) {
       return next(
         new AppError(

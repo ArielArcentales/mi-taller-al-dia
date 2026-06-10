@@ -37,7 +37,10 @@ const obtenerTrabajos = async (estado = "") => {
     params.push(estado);
   }
 
-  query += ` ORDER BY t.fecha_ingreso DESC`;
+  query += ` ORDER BY 
+    CASE WHEN t.estado IN ('Entregado', 'Anulado') THEN 1 ELSE 0 END,
+    t.fecha_entrega_prometida ASC NULLS LAST, 
+    t.fecha_ingreso DESC`;
 
   const result = await db.query(query, params);
   return result.rows;
@@ -88,7 +91,8 @@ const editarTrabajo = async (
 // Función para eliminar un trabajo de la base de datos
 const eliminarTrabajo = async (id) => {
   const query = `
-    DELETE FROM trabajos 
+    UPDATE trabajos 
+    SET estado = 'Anulado', ultima_actualizacion = CURRENT_TIMESTAMP
     WHERE id_trabajo = $1 
     RETURNING *;
   `;
