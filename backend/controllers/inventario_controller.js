@@ -20,12 +20,10 @@ const registrarProducto = async (req, res, next) => {
       precio_costo || 0.0,
     );
 
-    res
-      .status(201)
-      .json({
-        mensaje: "Producto registrado en el inventario",
-        producto: nuevoProducto,
-      });
+    res.status(201).json({
+      mensaje: "Producto registrado en el inventario",
+      producto: nuevoProducto,
+    });
   } catch (error) {
     next(error);
   }
@@ -62,12 +60,10 @@ const actualizarProducto = async (req, res, next) => {
       );
     }
 
-    res
-      .status(200)
-      .json({
-        mensaje: "Inventario actualizado",
-        producto: productoActualizado,
-      });
+    res.status(200).json({
+      mensaje: "Inventario actualizado",
+      producto: productoActualizado,
+    });
   } catch (error) {
     next(error);
   }
@@ -88,9 +84,20 @@ const eliminarProducto = async (req, res, next) => {
   }
 };
 
+const obtenerHistorial = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const historial = await InventarioModel.obtenerHistorialProducto(id);
+    res.status(200).json(historial);
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   registrarProducto,
   obtenerInventario,
   actualizarProducto,
   eliminarProducto,
+  obtenerHistorial,
 };

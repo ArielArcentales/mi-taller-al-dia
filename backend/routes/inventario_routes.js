@@ -7,6 +7,7 @@ router.use(protegerRuta);
 
 router.post("/", inventarioController.registrarProducto);
 router.get("/", inventarioController.obtenerInventario);
+router.get("/:id/historial", inventarioController.obtenerHistorial);
 router.put("/:id", inventarioController.actualizarProducto);
 router.delete("/:id", inventarioController.eliminarProducto);
 
