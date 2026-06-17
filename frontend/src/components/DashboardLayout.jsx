@@ -8,6 +8,9 @@ import {
   LogOut,
   Menu,
   X,
+  ChevronLeft,
+  ChevronRight,
+  Store,
 } from "lucide-react";
 import PantallaCarga from "../components/PantallaCarga";
 
@@ -15,39 +18,41 @@ const DashboardLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Estados para la interfaz
+  // Estados de la interfaz
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  // Recuperamos el usuario activo
+  // Recuperación de información del usuario
   const usuarioInfo = JSON.parse(localStorage.getItem("usuario")) || {
     username: "Empleado",
   };
 
-  // Menú de navegación dinámico
+  // Configuración del menú de navegación
   const menuNavegacion = [
     {
       ruta: "/dashboard",
-      icono: <LayoutDashboard size={24} />,
+      icono: <LayoutDashboard size={32} />,
       texto: "Panel Principal",
     },
     {
       ruta: "/dashboard/clientes",
-      icono: <Users size={24} />,
+      icono: <Users size={32} />,
       texto: "Clientes",
     },
     {
       ruta: "/dashboard/trabajos",
-      icono: <Wrench size={24} />,
+      icono: <Wrench size={32} />,
       texto: "Órdenes de Trabajo",
     },
     {
       ruta: "/dashboard/inventario",
-      icono: <Package size={24} />,
+      icono: <Package size={32} />,
       texto: "Inventario",
     },
   ];
 
+  // Función para manejar el cierre de sesión
   const manejarCierreSesion = async () => {
     setIsLoggingOut(true);
     await new Promise((resolve) => setTimeout(resolve, 1500));
@@ -58,109 +63,153 @@ const DashboardLayout = () => {
 
   return (
     <>
+      {/* Pantalla de carga superpuesta al cerrar sesión */}
       {isLoggingOut && <PantallaCarga texto="Cerrando Sesión" />}
 
       <div className="min-h-screen bg-slate-100 flex overflow-hidden">
-        {/* FONDO OSCURO PARA MÓVILES (Aparece cuando el menú está abierto) */}
+        {/* Fondo oscuro para dispositivos móviles al abrir el menú */}
         {isSidebarOpen && (
           <div
-            className="fixed inset-0 bg-slate-900/50 z-20 lg:hidden backdrop-blur-sm transition-opacity"
+            className="fixed inset-0 bg-slate-900/60 z-20 lg:hidden backdrop-blur-sm transition-opacity"
             onClick={() => setIsSidebarOpen(false)}
           ></div>
         )}
 
-        {/* MENÚ LATERAL (Sidebar) */}
+        {/* BARRA DE NAVEGACIÓN LATERAL (SIDEBAR) */}
         <aside
-          className={`fixed lg:static inset-y-0 left-0 z-30 w-72 bg-slate-900 text-white transform transition-transform duration-300 ease-in-out flex flex-col shadow-2xl ${
-            isSidebarOpen
-              ? "translate-x-0"
-              : "-translate-x-full lg:translate-x-0"
-          }`}
+          className={`fixed lg:relative inset-y-0 left-0 z-30 bg-slate-900 text-white transform transition-all duration-300 ease-in-out flex flex-col shadow-[20px_0_40px_-15px_rgba(0,0,0,0.3)] .lg:rounded-br-[2rem]
+          ${isSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
+          ${isCollapsed ? ".lg:w-[130px] .w-[340px]" : ".w-[340px]"}`}
         >
-          {/* Cabecera del Sidebar */}
-          <div className="p-6 flex items-center justify-between border-b border-slate-800">
-            <h2 className="text-2xl font-black text-white tracking-tight">
-              Mi Taller <span className="text-taller-500">al Día</span>
-            </h2>
+          {/* Pestaña flotante para colapsar/desplegar el menú (Solo PC) */}
+          <button
+            className="hidden lg:flex absolute top-0 -right-8 items-center justify-center w-10 h-20 bg-slate-900 text-slate-400 rounded-r-2xl hover:text-white transition-colors z-50 cursor-pointer shadow-[10px_5px_15px_-5px_rgba(0,0,0,0.3)]"
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            title={isCollapsed ? "Desplegar menú" : "Ocultar menú"}
+          >
+            <div className="pl-1">
+              {isCollapsed ? (
+                <ChevronRight size={24} />
+              ) : (
+                <ChevronLeft size={24} />
+              )}
+            </div>
+          </button>
+
+          {/* Cabecera del menú (Logo y botón de cierre móvil) */}
+          <div
+            className={`p-8 flex items-center border-b border-slate-800 relative .h-[110px] ${isCollapsed ? "justify-center" : "justify-between"}`}
+          >
+            {!isCollapsed ? (
+              <h2 className="text-3xl font-black text-white tracking-tight whitespace-nowrap overflow-hidden">
+                Mi Taller <span className="text-taller-500">al Día</span>
+              </h2>
+            ) : (
+              <div className="bg-slate-800 p-3 rounded-xl border border-slate-700 shadow-inner">
+                <Store className="text-taller-500" size={32} />
+              </div>
+            )}
+
             <button
-              className="lg:hidden text-slate-400 hover:text-white"
+              className={`lg:hidden text-slate-400 hover:text-white ${!isCollapsed && "absolute right-8"}`}
               onClick={() => setIsSidebarOpen(false)}
             >
-              <X size={28} />
+              <X size={36} />
             </button>
           </div>
 
-          {/* Perfil de Usuario Rápido */}
-          <div className="px-6 py-8 flex items-center gap-4">
-            <div className="w-14 h-14 rounded-full bg-taller-600 flex items-center justify-center text-xl font-bold border-2 border-taller-400">
+          {/* Perfil de usuario rápido */}
+          <div
+            className={`py-10 flex items-center border-b border-slate-800/50 transition-all ${isCollapsed ? "justify-center px-4" : "px-8 gap-5"}`}
+          >
+            <div className="w-16 h-16 shrink-0 rounded-full bg-taller-600 flex items-center justify-center text-3xl font-black border-4 border-taller-950 shadow-inner transition-all">
               {usuarioInfo.username.charAt(0).toUpperCase()}
             </div>
-            <div>
-              <p className="text-slate-400 text-sm font-medium uppercase tracking-wider">
-                Hola,
-              </p>
-              <p className="text-white font-bold text-lg truncate">
-                {usuarioInfo.username}
-              </p>
-            </div>
+
+            {!isCollapsed && (
+              <div className="overflow-hidden whitespace-nowrap">
+                <p className="text-slate-400 text-base font-bold uppercase tracking-wider mb-1">
+                  Bienvenido,
+                </p>
+                <p className="text-white font-black text-2xl truncate">
+                  {usuarioInfo.username}
+                </p>
+              </div>
+            )}
           </div>
 
-          {/* Links de Navegación */}
-          <nav className="flex-1 px-4 space-y-2 overflow-y-auto">
+          {/* Enlaces de navegación principales */}
+          <nav className="flex-1 py-8 space-y-4 overflow-y-auto overflow-x-hidden">
             {menuNavegacion.map((item) => {
-              // Comprobamos si la ruta actual coincide exactamente para marcarla como activa
               const isActive = location.pathname === item.ruta;
 
               return (
                 <NavLink
                   key={item.ruta}
                   to={item.ruta}
-                  onClick={() => setIsSidebarOpen(false)} // Cierra el menú en móviles al hacer clic
-                  className={`flex items-center gap-4 px-4 py-4 rounded-xl font-medium transition-all duration-200 ${
-                    isActive
-                      ? "bg-taller-600 text-white shadow-lg shadow-taller-900/50"
-                      : "text-slate-400 hover:bg-slate-800 hover:text-slate-100"
-                  }`}
+                  onClick={() => setIsSidebarOpen(false)}
+                  className={`flex items-center py-5 rounded-2xl font-bold transition-all duration-200 group 
+                    ${isCollapsed ? "justify-center px-0 mx-4" : "gap-5 px-5 mx-5"} 
+                    ${
+                      isActive
+                        ? "bg-taller-600 text-white shadow-xl shadow-taller-900/40 border-l-8 border-white"
+                        : "text-slate-400 hover:bg-slate-800 hover:text-white border-l-8 border-transparent"
+                    }`}
+                  title={isCollapsed ? item.texto : ""}
                 >
-                  {item.icono}
-                  <span className="text-lg">{item.texto}</span>
+                  <span
+                    className={`${isActive ? "text-white" : "text-slate-500 group-hover:text-taller-400"} transition-colors shrink-0`}
+                  >
+                    {item.icono}
+                  </span>
+
+                  {!isCollapsed && (
+                    <span className="text-xl tracking-wide whitespace-nowrap">
+                      {item.texto}
+                    </span>
+                  )}
                 </NavLink>
               );
             })}
           </nav>
 
-          {/* Botón de Cerrar Sesión en la parte inferior */}
-          <div className="p-4 border-t border-slate-800">
+          {/* Sección inferior: Botón de cerrar sesión */}
+          <div className="p-6 pb-8 border-t border-slate-800 mt-auto">
             <button
               onClick={manejarCierreSesion}
               disabled={isLoggingOut}
-              className="w-full flex items-center justify-center gap-3 px-4 py-4 bg-slate-800 hover:bg-red-600/90 text-slate-300 hover:text-white rounded-xl font-bold transition-all duration-200"
+              className={`w-full flex items-center py-5 bg-slate-800 hover:bg-red-500 text-slate-300 hover:text-white rounded-2xl font-black transition-all duration-200 shadow-lg
+                ${isCollapsed ? "justify-center px-0" : "justify-center gap-4 px-6"}`}
+              title={isCollapsed ? "Cerrar Sesión" : ""}
             >
-              <LogOut size={24} />
-              <span>Cerrar Sesión</span>
+              <LogOut size={28} className="shrink-0" />
+
+              {!isCollapsed && (
+                <span className="text-xl whitespace-nowrap">Cerrar Sesión</span>
+              )}
             </button>
           </div>
         </aside>
 
-        {/* CONTENIDO PRINCIPAL */}
-        <main className="flex-1 flex flex-col h-screen overflow-hidden">
-          {/* Cabecera superior (Navbar) visible en móviles */}
-          <header className="bg-white shadow-sm border-b border-slate-200 h-20 flex items-center justify-between px-4 lg:hidden shrink-0">
-            <div className="flex items-center gap-4">
+        {/* ÁREA DE CONTENIDO PRINCIPAL */}
+        <main className="flex-1 flex flex-col h-screen overflow-hidden bg-slate-100 transition-all duration-300">
+          {/* Barra de navegación superior (Solo visible en móviles) */}
+          <header className="bg-white shadow-sm border-b border-slate-200 h-24 flex items-center justify-between px-6 lg:hidden shrink-0">
+            <div className="flex items-center gap-5">
               <button
                 onClick={() => setIsSidebarOpen(true)}
-                className="p-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors"
+                className="p-3 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition-colors"
               >
-                <Menu size={28} />
+                <Menu size={32} />
               </button>
-              <h1 className="text-xl font-black text-slate-800">
+              <h1 className="text-2xl font-black text-slate-800">
                 Mi Taller al Día
               </h1>
             </div>
           </header>
 
-          {/* Área dinámica donde se inyectan las demás pantallas */}
-          <div className="flex-1 overflow-auto p-6 md:p-8 bg-slate-100">
+          {/* Contenedor dinámico de rutas (Outlet) */}
+          <div className="flex-1 overflow-auto p-6 md:p-10 lg:p-12">
             <Outlet />
           </div>
         </main>

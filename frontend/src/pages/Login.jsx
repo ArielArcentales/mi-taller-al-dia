@@ -97,9 +97,7 @@ const Login = () => {
           );
         }
       } else if (error.request) {
-        setErrorMsg(
-          "Error al conectar con el servidor. Asegúrate de que el backend esté corriendo.",
-        );
+        setErrorMsg("Error al conectar con el servidor");
       } else {
         setErrorMsg("Ocurrió un error inesperado. Inténtalo de nuevo.");
       }
@@ -110,11 +108,11 @@ const Login = () => {
     <>
       {isLoading && <PantallaCarga texto="Validando credenciales..." />}
 
-      <div className="min-h-screen flex items-center justify-center p-4 md:p-8 bg-slate-200">
-        <div className="bg-white w-full max-w-6xl h-[85vh] .min-h-[650px] rounded-2xl shadow-2xl overflow-hidden flex flex-col lg:flex-row">
-          <div className="flex-[1.2] p-12 md:p-20 flex flex-col justify-center relative z-10 bg-white">
+      <div className="min-h-screen w-screen flex items-center justify-center p-4 md:p-8 bg-slate-200">
+        <div className="bg-white w-full .max-w-[1400px] h-[90vh] .min-h-[700px] rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col lg:flex-row border border-slate-100">
+          <div className="w-full lg:w-[55%] p-8 sm:p-16 xl:p-24 flex flex-col justify-center relative z-10 bg-white">
             <div className="mb-10">
-              <h2 className="text-6xl font-black text-taller-950 mb-3 tracking-tight">
+              <h2 className="text-6xl xl:text-7xl font-black text-taller-950 mb-3 tracking-tight">
                 Mi Taller al Día
               </h2>
               <p className="text-taller-700 text-2xl font-medium">
@@ -123,53 +121,52 @@ const Login = () => {
             </div>
 
             {errorMsg && (
-              <div className="mb-6 flex items-center gap-3 bg-red-50 border-l-4 border-red-500 p-4 rounded-r-xl transition-all animate-in fade-in slide-in-from-top-2">
-                <AlertCircle
-                  className="text-red-500 .flex-shrink-0"
-                  size={24}
-                />
-                <p className="text-red-700 text-lg font-bold">{errorMsg}</p>
+              <div className="mb-8 flex items-center gap-4 bg-red-50 border-2 border-red-200 text-red-700 p-5 rounded-2xl transition-all animate-in fade-in slide-in-from-top-2">
+                <AlertCircle className="shrink-0" size={32} />
+                <p className="text-xl font-bold">{errorMsg}</p>
               </div>
             )}
 
-            <form className="space-y-8" onSubmit={handleSubmit}>
+            <form className="space-y-10" onSubmit={handleSubmit}>
               <div>
-                <label className="block text-taller-950 font-bold text-base uppercase tracking-wide mb-2 ml-1">
+                <label className="block text-taller-950 font-black text-lg uppercase tracking-wider mb-3 ml-2">
                   Usuario
                 </label>
                 <div className="relative group">
                   <User
-                    className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-taller-500 transition-colors"
-                    size={28}
+                    className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-taller-500 transition-colors"
+                    size={32}
                   />
                   <input
                     type="text"
                     name="usuario"
+                    // Validación en código
                     value={credenciales.usuario}
                     placeholder="Ej: victor_admin"
                     disabled={isLoading}
-                    className="w-full pl-14 pr-4 py-5 text-2xl border-2 border-slate-200 rounded-xl focus:border-taller-800 focus:ring-2 focus:ring-taller-100 outline-none transition-all text-taller-950 font-medium bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full pl-16 pr-5 py-6 text-2xl border-2 border-slate-200 rounded-2xl focus:border-taller-800 focus:ring-4 focus:ring-taller-100 outline-none transition-all text-taller-950 font-bold bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
                     onChange={manejarCambio}
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-taller-950 font-bold text-base uppercase tracking-wide mb-2 ml-1">
+                <label className="block text-taller-950 font-black text-lg uppercase tracking-wider mb-3 ml-2">
                   Contraseña
                 </label>
                 <div className="relative group">
                   <Lock
-                    className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-taller-500 transition-colors"
-                    size={28}
+                    className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-taller-500 transition-colors"
+                    size={32}
                   />
                   <input
                     type={showPassword ? "text" : "password"}
                     name="password"
+                    // Validación en código
                     value={credenciales.password}
                     placeholder="••••••••"
                     disabled={isLoading}
-                    className="w-full pl-14 pr-14 py-5 text-2xl border-2 border-slate-200 rounded-xl focus:border-taller-800 focus:ring-2 focus:ring-taller-100 outline-none transition-all text-taller-950 font-medium bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full pl-16 pr-16 py-6 text-2xl border-2 border-slate-200 rounded-2xl focus:border-taller-800 focus:ring-4 focus:ring-taller-100 outline-none transition-all text-taller-950 font-bold bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
                     onChange={manejarCambio}
                   />
 
@@ -177,46 +174,46 @@ const Login = () => {
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     disabled={isLoading}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-taller-500 transition-colors disabled:opacity-50"
+                    className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-taller-500 transition-colors disabled:opacity-50 p-2"
                   >
-                    {showPassword ? <EyeOff size={28} /> : <Eye size={28} />}
+                    {showPassword ? <EyeOff size={32} /> : <Eye size={32} />}
                   </button>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between py-2">
-                <label className="flex items-center space-x-2 cursor-pointer group">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-2 ml-2">
+                <label className="flex items-center space-x-3 cursor-pointer group">
                   <input
                     type="checkbox"
                     disabled={isLoading}
-                    className="w-6 h-6 rounded border-slate-300 text-taller-500 focus:ring-taller-500 disabled:opacity-50"
+                    className="w-6 h-6 rounded border-slate-300 text-taller-500 focus:ring-taller-500 disabled:opacity-50 cursor-pointer"
                   />
-                  <span className="text-slate-600 font-medium text-xl group-hover:text-taller-950 transition-colors">
+                  <span className="text-slate-600 font-bold text-xl group-hover:text-taller-950 transition-colors">
                     Recordarme
                   </span>
                 </label>
-                <a
-                  href="#"
-                  className="text-taller-700 font-bold text-xl hover:text-taller-950 transition-colors"
+                <button
+                  type="button"
+                  className="text-taller-700 font-black text-xl hover:text-taller-950 transition-colors text-left"
                 >
                   ¿Olvidaste tu clave?
-                </a>
+                </button>
               </div>
 
               <button
                 type="submit"
                 disabled={isLoading}
-                className={`w-full flex items-center justify-center gap-3 text-white text-3xl font-bold py-5 rounded-xl transition-all shadow-lg mt-4 
+                className={`w-full flex items-center justify-center gap-4 text-white text-3xl font-black py-6 rounded-2xl transition-all shadow-xl mt-6 
                   ${
                     isLoading
                       ? "bg-taller-800 opacity-80 cursor-not-allowed"
-                      : "bg-taller-950 hover:bg-taller-900 active:scale-[0.98] shadow-taller-950/20"
+                      : "bg-taller-950 hover:bg-taller-900 active:scale-[0.98] shadow-taller-950/30"
                   }`}
               >
                 {isLoading ? (
                   <>
-                    <Loader2 className="animate-spin" size={32} />
-                    <span>Iniciando</span>
+                    <Loader2 className="animate-spin" size={36} />
+                    <span>Iniciando...</span>
                   </>
                 ) : (
                   <span>Iniciar Sesión</span>
@@ -225,7 +222,7 @@ const Login = () => {
             </form>
           </div>
 
-          <div className="hidden lg:flex flex-1 bg-slate-900 relative overflow-hidden">
+          <div className="hidden lg:flex w-[45%] bg-slate-900 relative overflow-hidden">
             {slides.map((slide, index) => (
               <div
                 key={index}
@@ -236,26 +233,26 @@ const Login = () => {
                 <img
                   src={slide.imagen}
                   alt={`Slide ${index + 1}`}
-                  className="absolute inset-0 w-full h-full object-cover opacity-50 scale-105"
+                  className="absolute inset-0 w-full h-full object-cover object-center scale-105"
                 />
-                <div className="absolute inset-0 bg-linear-to-t from-black/70 via-black/20 to-transparent"></div>
-                <div className="absolute inset-0 z-10 p-16 flex flex-col justify-end h-full w-full">
-                  <h3 className="text-white text-4xl font-dm italic mb-8 leading-tight max-w-lg drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]">
+                <div className="absolute inset-0 .bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent"></div>
+                <div className="absolute inset-0 z-10 p-12 xl:p-16 flex flex-col justify-end items-center text-center">
+                  <h3 className="text-white text-3xl xl:text-4xl font-dm italic mb-8 leading-tight drop-shadow-xl max-w-lg">
                     {slide.texto}
                   </h3>
                 </div>
               </div>
             ))}
 
-            <div className="absolute bottom-16 left-16 z-20 flex space-x-2.5">
+            <div className="absolute bottom-10 left-0 right-0 z-20 flex justify-center space-x-3 pointer-events-auto">
               {slides.map((_, index) => (
                 <button
                   key={index}
                   onClick={() => setCurrentSlide(index)}
-                  className={`h-2 rounded-full transition-all duration-500 cursor-pointer ${
+                  className={`h-3 rounded-full transition-all duration-500 cursor-pointer shadow-lg ${
                     index === currentSlide
-                      ? "w-12 bg-taller-100"
-                      : "w-2 bg-taller-100/40 hover:bg-taller-100/70"
+                      ? "w-14 bg-white"
+                      : "w-3 bg-white/40 hover:bg-white/70"
                   }`}
                   aria-label={`Ir a diapositiva ${index + 1}`}
                 />
