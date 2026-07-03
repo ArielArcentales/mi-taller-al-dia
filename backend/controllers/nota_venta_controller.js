@@ -59,7 +59,17 @@ const obtenerNotaVenta = async (req, res, next) => {
   }
 };
 
+const obtenerHistorialNotas = async (req, res, next) => {
+  try {
+    const notas = await NotaVentaModel.obtenerTodasLasNotas();
+    res.status(200).json(notas);
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   registrarNotaVenta,
   obtenerNotaVenta,
+  obtenerHistorialNotas,
 };

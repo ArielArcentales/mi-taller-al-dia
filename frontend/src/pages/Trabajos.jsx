@@ -30,6 +30,9 @@ const Trabajos = () => {
   const [trabajoAEliminar, setTrabajoAEliminar] = useState(null);
   const [trabajoAEntregar, setTrabajoAEntregar] = useState(null);
 
+  // NUEVO: Estado para capturar el método de pago al entregar
+  const [metodoPagoFinal, setMetodoPagoFinal] = useState("Efectivo");
+
   // Estados para el formulario de nueva/edición de orden
   const [formulario, setFormulario] = useState({
     id_cliente: "",
@@ -113,37 +116,38 @@ const Trabajos = () => {
     }
   };
 
-  // Función para confirmar la entrega y liquidar saldo
+  // NUEVA FUNCIÓN: Confirmar entrega e inyectar en Finanzas
   const ejecutarEntrega = async () => {
     if (!trabajoAEntregar) return;
     try {
       const token = localStorage.getItem("token");
       const headers = { Authorization: `Bearer ${token}` };
 
-      // 1. Igualar el abono al precio
-      await axios.put(
-        `http://localhost:3000/api/trabajos/${trabajoAEntregar.id_trabajo}`,
-        {
-          ...trabajoAEntregar,
-          abono: trabajoAEntregar.precio,
-        },
-        { headers },
-      );
+      // Preparamos los datos financieros para generar el recibo
+      const payloadNota = {
+        id_trabajo: trabajoAEntregar.id_trabajo,
+        subtotal: parseFloat(trabajoAEntregar.precio),
+        iva: 0,
+        total: parseFloat(trabajoAEntregar.precio),
+        metodo_pago: metodoPagoFinal,
+        detalles_adicionales:
+          "Cobro generado desde la pantalla de Órdenes de Trabajo",
+      };
 
-      // 2. Cambiar estado a Entregado
-      await axios.put(
-        `http://localhost:3000/api/trabajos/${trabajoAEntregar.id_trabajo}/estado`,
-        {
-          estado: "Entregado",
-        },
-        { headers },
-      );
+      // Disparamos la creación de la nota de venta (El backend automáticamente lo marca "Entregado")
+      await axios.post("http://localhost:3000/api/notas-venta", payloadNota, {
+        headers,
+      });
 
       obtenerDatos(filtroEstado);
       setTrabajoAEntregar(null);
+      setMetodoPagoFinal("Efectivo"); // Reseteamos el selector
     } catch (error) {
       console.error("Error al procesar la entrega:", error);
-      alert("Error al procesar la entrega de la orden");
+      alert(
+        error.response?.data?.mensaje ||
+          "Error al procesar la entrega y generar el cobro.",
+      );
     }
   };
 
@@ -741,6 +745,22 @@ const Trabajos = () => {
                   .
                 </div>
               )}
+
+              {/* Selector de Método de Pago Final */}
+              <div className="mb-6 text-left">
+                <label className="block text-sm font-bold text-slate-600 mb-2">
+                  Método de Pago Final:
+                </label>
+                <select
+                  value={metodoPagoFinal}
+                  onChange={(e) => setMetodoPagoFinal(e.target.value)}
+                  className="w-full bg-slate-50 border-2 border-slate-200 text-slate-800 text-lg font-bold rounded-xl px-4 py-3 outline-none focus:border-emerald-500"
+                >
+                  <option value="Efectivo">💵 Efectivo</option>
+                  <option value="Transferencia">💳 Transferencia</option>
+                </select>
+              </div>
+
               <div className="flex gap-4">
                 <button
                   onClick={() => setTrabajoAEntregar(null)}

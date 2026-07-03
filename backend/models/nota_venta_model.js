@@ -52,7 +52,23 @@ const obtenerNotaVentaPorTrabajo = async (id_trabajo) => {
   return result.rows[0];
 };
 
+const obtenerTodasLasNotas = async () => {
+  const query = `
+    SELECT 
+      nv.*, 
+      t.descripcion_producto, 
+      c.nombre_completo
+    FROM notas_venta nv
+    JOIN trabajos t ON nv.id_trabajo = t.id_trabajo
+    JOIN clientes c ON t.id_cliente = c.id_cliente
+    ORDER BY nv.fecha_emision DESC;
+  `;
+  const result = await db.query(query);
+  return result.rows;
+};
+
 module.exports = {
   crearNotaVenta,
   obtenerNotaVentaPorTrabajo,
+  obtenerTodasLasNotas,
 };

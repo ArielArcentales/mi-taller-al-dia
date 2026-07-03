@@ -6,6 +6,7 @@ import DashboardInicio from "./pages/DashboardInicio";
 import Clientes from "./pages/Clientes";
 import Trabajos from "./pages/Trabajos";
 import Inventario from "./pages/Inventario";
+import Finanzas from "./pages/Finanzas";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -28,10 +29,13 @@ function App() {
         {/* Vista por defecto al entrar a /dashboard */}
         <Route index element={<DashboardInicio />} />
 
-        {/* Ruta del módulo de clientes */}
+        {/* Ruta de los módulos */}
         <Route path="clientes" element={<Clientes />} />
         <Route path="trabajos" element={<Trabajos />} />
         <Route path="inventario" element={<Inventario />} />
+
+        {/* CORRECCIÓN AQUÍ: quitamos la barra "/" antes de finanzas */}
+        <Route path="finanzas" element={<Finanzas />} />
       </Route>
 
       {/* Ruta 404: Si escriben una URL que no existe, los manda al login */}

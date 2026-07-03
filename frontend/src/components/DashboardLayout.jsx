@@ -8,6 +8,7 @@ import {
   LogOut,
   Menu,
   X,
+  DollarSign, // <-- Ícono importado para Finanzas
 } from "lucide-react";
 import PantallaCarga from "../components/PantallaCarga";
 
@@ -45,6 +46,11 @@ const DashboardLayout = () => {
       ruta: "/dashboard/inventario",
       icono: <Package size={24} />,
       texto: "Inventario",
+    },
+    {
+      ruta: "/dashboard/finanzas", // <-- La nueva ruta de finanzas
+      icono: <DollarSign size={24} />,
+      texto: "Finanzas y Caja",
     },
   ];
 
@@ -106,7 +112,7 @@ const DashboardLayout = () => {
           </div>
 
           {/* Links de Navegación */}
-          <nav className="flex-1 px-4 space-y-2 overflow-y-auto">
+          <nav className="flex-1 px-4 space-y-2 overflow-y-auto custom-scrollbar">
             {menuNavegacion.map((item) => {
               // Comprobamos si la ruta actual coincide exactamente para marcarla como activa
               const isActive = location.pathname === item.ruta;

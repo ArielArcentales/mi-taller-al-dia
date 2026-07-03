@@ -6,6 +6,7 @@ const { protegerRuta } = require("../middlewares/auth_middleware");
 router.use(protegerRuta);
 
 router.post("/", notaVentaController.registrarNotaVenta);
+router.get("/", notaVentaController.obtenerHistorialNotas);
 router.get("/trabajo/:id_trabajo", notaVentaController.obtenerNotaVenta);
 
 module.exports = router;
