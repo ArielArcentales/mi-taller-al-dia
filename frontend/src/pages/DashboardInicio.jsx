@@ -9,24 +9,69 @@ import {
   ArrowRight,
   Loader2,
   CheckCircle2,
+  Banknote,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 
 const DashboardInicio = () => {
-  // Estados para almacenar la información del dashboard y el indicador de carga
   const [datos, setDatos] = useState(null);
   const [cargando, setCargando] = useState(true);
+  const [ingresosHoy, setIngresosHoy] = useState(0);
 
-  // Se ejecuta automáticamente al abrir la pantalla para cargar las métricas (HU-08)
   useEffect(() => {
     const cargarDashboard = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await axios.get("http://localhost:3000/api/dashboard", {
-          headers: { Authorization: `Bearer ${token}` },
+        const headers = { Authorization: `Bearer ${token}` };
+
+        const [resDashboard, resNotas, resTrabajos] = await Promise.all([
+          axios.get("http://localhost:3000/api/dashboard", { headers }),
+          axios.get("http://localhost:3000/api/notas-venta", { headers }),
+          axios.get("http://localhost:3000/api/trabajos", { headers }),
+        ]);
+
+        setDatos(resDashboard.data);
+
+        const notasReales = resNotas.data || [];
+        const trabajos = resTrabajos.data || [];
+        let totalCajaHoy = 0;
+
+        // LÓGICA DE CORTE DE CAJA A LAS 9 PM (21:00)
+        // Función para calcular la "Fecha Contable" de cualquier registro
+        const obtenerFechaContable = (fecha) => {
+          const d = new Date(fecha);
+          if (d.getHours() >= 21) {
+            d.setDate(d.getDate() + 1); // Si son más de las 9PM, lo cuenta para mañana
+          }
+          return d.toDateString();
+        };
+
+        const hoyContableStr = obtenerFechaContable(new Date());
+
+        notasReales.forEach((nota) => {
+          if (
+            nota.fecha_emision &&
+            obtenerFechaContable(nota.fecha_emision) === hoyContableStr
+          ) {
+            totalCajaHoy += parseFloat(nota.total || 0);
+          }
         });
-        setDatos(res.data);
+
+        trabajos.forEach((t) => {
+          const tieneNota = notasReales.some(
+            (n) => n.id_trabajo === t.id_trabajo,
+          );
+          if (!tieneNota && parseFloat(t.abono) > 0) {
+            const fechaTx =
+              t.fecha_entrega_prometida || new Date().toISOString();
+            if (obtenerFechaContable(fechaTx) === hoyContableStr) {
+              totalCajaHoy += parseFloat(t.abono || 0);
+            }
+          }
+        });
+
+        setIngresosHoy(totalCajaHoy);
       } catch (error) {
         console.error("Error cargando dashboard:", error);
       } finally {
@@ -36,7 +81,6 @@ const DashboardInicio = () => {
     cargarDashboard();
   }, []);
 
-  // Pantalla de carga mientras se obtienen los datos del backend
   if (cargando) {
     return (
       <div className="flex flex-col items-center justify-center h-[70vh] text-slate-400">
@@ -46,20 +90,16 @@ const DashboardInicio = () => {
     );
   }
 
-  // Prevención de errores si los datos no cargan correctamente
   if (!datos) return null;
 
-  // LÓGICA DE NEGOCIO: Cálculos financieros seguros
   const esperado = parseFloat(datos.finanzas.total_esperado || 0);
   const recibido = parseFloat(datos.finanzas.total_abonos || 0);
   const porCobrar = esperado - recibido;
 
-  // LÓGICA DE NEGOCIO: Cálculo de trabajos activos (Ignoramos Entregados y Anulados)
   const totalActivos = datos.resumen_trabajos
     .filter((t) => ["Pendiente", "En Proceso", "Listo"].includes(t.estado))
     .reduce((acc, curr) => acc + parseInt(curr.total), 0);
 
-  // Utilidad para dar color visual a TODOS los estados del taller (Incluyendo Anulado)
   const getColorEstado = (estado) => {
     switch (estado) {
       case "Pendiente":
@@ -71,7 +111,7 @@ const DashboardInicio = () => {
       case "Entregado":
         return "bg-slate-100 text-slate-600 border-slate-200";
       case "Anulado":
-        return "bg-red-100 text-red-700 border-red-200"; // Color específico para auditoría
+        return "bg-red-100 text-red-700 border-red-200";
       default:
         return "bg-slate-100 text-slate-600";
     }
@@ -79,7 +119,6 @@ const DashboardInicio = () => {
 
   return (
     <div className="flex flex-col gap-8">
-      {/* TÍTULO DE LA SECCIÓN */}
       <div>
         <h2 className="text-4xl font-black text-slate-800">Panel Principal</h2>
         <p className="text-xl text-slate-600 mt-2">
@@ -87,16 +126,28 @@ const DashboardInicio = () => {
         </p>
       </div>
 
-      {/* FILA 1: TARJETAS DE INDICADORES / KPIs (HU-08) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-        {/* KPI: Abonos Recibidos */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-5">
+          <div className="w-16 h-16 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+            <Banknote size={32} />
+          </div>
+          <div>
+            <p className="text-slate-500 font-bold text-sm uppercase tracking-wider">
+              Caja de Hoy
+            </p>
+            <h3 className="text-3xl font-black text-slate-800">
+              ${ingresosHoy.toFixed(2)}
+            </h3>
+          </div>
+        </div>
+
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-5">
           <div className="w-16 h-16 rounded-xl bg-green-100 text-green-600 flex items-center justify-center shrink-0">
             <DollarSign size={32} />
           </div>
           <div>
             <p className="text-slate-500 font-bold text-sm uppercase tracking-wider">
-              Abonos Recibidos
+              Abonos Histórico
             </p>
             <h3 className="text-3xl font-black text-slate-800">
               ${recibido.toFixed(2)}
@@ -104,7 +155,6 @@ const DashboardInicio = () => {
           </div>
         </div>
 
-        {/* KPI: Saldo por Cobrar */}
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-5">
           <div className="w-16 h-16 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
             <TrendingUp size={32} />
@@ -119,7 +169,6 @@ const DashboardInicio = () => {
           </div>
         </div>
 
-        {/* KPI: Trabajos Activos */}
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-5">
           <div className="w-16 h-16 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
             <Wrench size={32} />
@@ -134,7 +183,6 @@ const DashboardInicio = () => {
           </div>
         </div>
 
-        {/* KPI: Órdenes Atrasadas */}
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-5">
           <div className="w-16 h-16 rounded-xl bg-red-100 text-red-600 flex items-center justify-center shrink-0">
             <Clock size={32} />
@@ -150,9 +198,7 @@ const DashboardInicio = () => {
         </div>
       </div>
 
-      {/* FILA 2: ALERTAS Y RESUMEN DETALLADO */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-        {/* COLUMNA IZQUIERDA: Lista de Trabajos Atrasados (HU-26) */}
         <div className="xl:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col .h-[500px]">
           <div className="p-6 border-b border-slate-100 flex justify-between items-center">
             <div className="flex items-center gap-3">
@@ -163,7 +209,6 @@ const DashboardInicio = () => {
                 Urgente / Atrasados
               </h3>
             </div>
-            {/* Enlace directo a la gestión de trabajos */}
             <Link
               to="/trabajos"
               className="text-taller-600 hover:text-taller-800 font-bold flex items-center gap-1"
@@ -225,9 +270,7 @@ const DashboardInicio = () => {
           </div>
         </div>
 
-        {/* COLUMNA DERECHA: Estado General e Inventario */}
         <div className="xl:col-span-1 flex flex-col gap-8 .h-[500px]">
-          {/* TARJETA SUPERIOR: Resumen de Estados (Embudo y Auditoría) */}
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 flex-1 flex flex-col min-h-0">
             <div className="p-5 border-b border-slate-100">
               <h3 className="text-xl font-bold text-slate-800">
@@ -236,7 +279,6 @@ const DashboardInicio = () => {
             </div>
             <div className="p-5 overflow-auto">
               <div className="space-y-3">
-                {/* Iteramos sobre todos los estados, incluyendo Entregado y Anulado */}
                 {[
                   "Pendiente",
                   "En Proceso",
@@ -271,7 +313,6 @@ const DashboardInicio = () => {
             </div>
           </div>
 
-          {/* TARJETA INFERIOR: Alertas de Inventario (Bajo Stock) */}
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 flex-1 flex flex-col min-h-0">
             <div className="p-5 border-b border-slate-100 flex justify-between items-center">
               <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">

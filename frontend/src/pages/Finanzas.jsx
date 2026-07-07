@@ -12,32 +12,28 @@ import {
   CalendarCheck,
   ReceiptText,
   ChevronDown,
-  Clock, // <-- Importado el icono que faltaba
+  Clock,
 } from "lucide-react";
 import axios from "axios";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
 const Finanzas = () => {
-  // Estado unificado para el Libro Mayor (Notas + Anticipos)
   const [transacciones, setTransacciones] = useState([]);
   const [cargando, setCargando] = useState(false);
 
-  // Estados para filtros
   const [busqueda, setBusqueda] = useState("");
   const [filtroTiempo, setFiltroTiempo] = useState("todas");
   const [filtroMetodo, setFiltroMetodo] = useState("");
 
   const [mostrarDropdownMetodo, setMostrarDropdownMetodo] = useState(false);
 
-  // Función limpia y corregida para cruzar datos
   const obtenerLibroMayor = async () => {
     setCargando(true);
     try {
       const token = localStorage.getItem("token");
       const headers = { Authorization: `Bearer ${token}` };
 
-      // Hacemos ambas peticiones al mismo tiempo
       const [resNotas, resTrabajos] = await Promise.all([
         axios.get("http://localhost:3000/api/notas-venta", { headers }),
         axios.get("http://localhost:3000/api/trabajos", { headers }),
@@ -48,11 +44,16 @@ const Finanzas = () => {
 
       const catalogoCompleto = [];
 
-      // 1. Agregamos las notas reales que ya pasaron por facturación
       notasReales.forEach((nota) => {
+        let numComprobante = nota.numero_comprobante || "";
+        if (numComprobante.includes("COMPROBANTE-")) {
+          const num = numComprobante.split("-")[1];
+          numComprobante = `NV-${String(num).padStart(5, "0")}`;
+        }
+
         catalogoCompleto.push({
           id_transaccion: `real-${nota.id_nota_venta}`,
-          numero_comprobante: nota.numero_comprobante,
+          numero_comprobante: numComprobante,
           nombre_completo: nota.nombre_completo,
           descripcion_producto: nota.descripcion_producto,
           metodo_pago: nota.metodo_pago,
@@ -63,23 +64,23 @@ const Finanzas = () => {
         });
       });
 
-      // 2. Buscamos abonos históricos antiguos para que cuadre con el Dashboard
       trabajos.forEach((t) => {
         const tieneNota = notasReales.some(
           (n) => n.id_trabajo === t.id_trabajo,
         );
 
-        // Si el trabajo no tiene nota de venta pero tiene un abono registrado
         if (!tieneNota && parseFloat(t.abono) > 0) {
+          const numeroFormateado = String(t.id_trabajo).padStart(5, "0");
+
           catalogoCompleto.push({
             id_transaccion: `prov-${t.id_trabajo}`,
             numero_comprobante:
               t.estado === "Entregado"
-                ? `COMPROBANTE-${t.id_trabajo}`
-                : `ANTICIPO-${t.id_trabajo}`,
+                ? `NV-${numeroFormateado}`
+                : `ANT-${numeroFormateado}`,
             nombre_completo: t.nombre_completo || "Cliente del Taller",
             descripcion_producto: t.descripcion_producto,
-            metodo_pago: "Efectivo", // Asumimos efectivo para los abonos antiguos
+            metodo_pago: "Efectivo",
             total: parseFloat(t.abono),
             fecha_emision:
               t.fecha_entrega_prometida || new Date().toISOString(),
@@ -89,7 +90,6 @@ const Finanzas = () => {
         }
       });
 
-      // Ordenamos todo por fecha descendente
       setTransacciones(
         catalogoCompleto.sort(
           (a, b) => new Date(b.fecha_emision) - new Date(a.fecha_emision),
@@ -109,7 +109,6 @@ const Finanzas = () => {
     cargarDatos();
   }, []);
 
-  // Lógica de filtrado combinada
   const transaccionesFiltradas = transacciones.filter((tx) => {
     const cumpleBusqueda =
       tx.numero_comprobante?.toLowerCase().includes(busqueda.toLowerCase()) ||
@@ -118,27 +117,37 @@ const Finanzas = () => {
     const cumpleMetodo = filtroMetodo === "" || tx.metodo_pago === filtroMetodo;
 
     let cumpleTiempo = true;
+
     if (filtroTiempo !== "todas" && tx.fecha_emision) {
-      const fechaTx = new Date(tx.fecha_emision);
-      const hoy = new Date();
+      // CORTE DE CAJA A LAS 9 PM (21:00)
+      const dTx = new Date(tx.fecha_emision);
+      // Si la transacción se hizo a las 21:00 o después, cuenta para el día de mañana
+      if (dTx.getHours() >= 21) {
+        dTx.setDate(dTx.getDate() + 1);
+      }
+
+      const dHoy = new Date();
+      if (dHoy.getHours() >= 21) {
+        dHoy.setDate(dHoy.getDate() + 1);
+      }
 
       if (filtroTiempo === "hoy") {
-        cumpleTiempo = fechaTx.toDateString() === hoy.toDateString();
+        cumpleTiempo = dTx.toDateString() === dHoy.toDateString();
       } else if (filtroTiempo === "semana") {
-        const hace7Dias = new Date();
-        hace7Dias.setDate(hoy.getDate() - 7);
-        cumpleTiempo = fechaTx >= hace7Dias;
-      } else if (filtroTiempo === "mes") {
-        cumpleTiempo =
-          fechaTx.getMonth() === hoy.getMonth() &&
-          fechaTx.getFullYear() === hoy.getFullYear();
+        const hace7Dias = new Date(dHoy);
+        hace7Dias.setDate(dHoy.getDate() - 7);
+
+        // Limpiamos las horas para comparar solo las fechas
+        dTx.setHours(0, 0, 0, 0);
+        hace7Dias.setHours(0, 0, 0, 0);
+
+        cumpleTiempo = dTx >= hace7Dias;
       }
     }
 
     return cumpleBusqueda && cumpleMetodo && cumpleTiempo;
   });
 
-  // Métricas para Cierre de Caja (HU-32)
   const ingresosTotales = transaccionesFiltradas.reduce(
     (sum, t) => sum + parseFloat(t.total || 0),
     0,
@@ -155,7 +164,6 @@ const Finanzas = () => {
     }).format(valor);
   };
 
-  // Función para Generación de PDF (HU-30) corregida para Vite/React
   const descargarPDF = (tx) => {
     const doc = new jsPDF();
     const colorPrimario = [30, 41, 59];
@@ -211,7 +219,6 @@ const Finanzas = () => {
       ],
     ];
 
-    // LA CORRECCIÓN ESTÁ AQUÍ: Usamos la función externa pasándole el "doc"
     autoTable(doc, {
       startY: 65,
       head: [tableColumn],
@@ -249,7 +256,6 @@ const Finanzas = () => {
 
   return (
     <div className="flex flex-col gap-6 h-[calc(100vh-80px)] min-h-125 w-full relative z-0 pb-6">
-      {/* Cabecera Principal y Filtro de Tiempo */}
       <div className="shrink-0 pt-2 flex flex-col md:flex-row md:items-center justify-between gap-5">
         <div>
           <h2 className="text-4xl font-black text-slate-800">
@@ -264,7 +270,6 @@ const Finanzas = () => {
           {[
             { id: "hoy", label: "Hoy" },
             { id: "semana", label: "Esta Semana" },
-            { id: "mes", label: "Este Mes" },
             { id: "todas", label: "Histórico" },
           ].map((rango) => (
             <button
@@ -282,7 +287,6 @@ const Finanzas = () => {
         </div>
       </div>
 
-      {/* RECUADRO 1: CIERRE DE CAJA Y MÉTRICAS (HU-32) */}
       <div className="shrink-0 bg-white p-6 md:p-8 rounded-4xl shadow-sm border border-slate-200">
         <h3 className="text-xl font-bold text-slate-500 mb-6 flex items-center gap-2">
           <TrendingUp size={24} className="text-emerald-500" /> Resumen de
@@ -334,7 +338,6 @@ const Finanzas = () => {
         </div>
       </div>
 
-      {/* RECUADRO 2: HISTORIAL DE TRANSACCIONES */}
       <div className="flex-1 bg-white p-6 md:p-8 rounded-4xl shadow-sm border border-slate-200 flex flex-col min-h-0 overflow-hidden">
         <header className="shrink-0 flex flex-col md:flex-row md:items-center justify-between gap-5 mb-8">
           <h3 className="text-3xl font-black text-slate-800 flex items-center gap-3">
