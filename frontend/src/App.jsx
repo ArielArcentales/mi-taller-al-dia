@@ -6,6 +6,9 @@ import DashboardInicio from "./pages/DashboardInicio";
 import Clientes from "./pages/Clientes";
 import Trabajos from "./pages/Trabajos";
 import Inventario from "./pages/Inventario";
+import Finanzas from "./pages/Finanzas";
+// 1. IMPORTAMOS EL NUEVO COMPONENTE DE USUARIOS
+import GestionUsuarios from "./pages/GestionUsuarios";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -28,10 +31,14 @@ function App() {
         {/* Vista por defecto al entrar a /dashboard */}
         <Route index element={<DashboardInicio />} />
 
-        {/* Ruta del módulo de clientes */}
+        {/* Ruta de los módulos */}
         <Route path="clientes" element={<Clientes />} />
         <Route path="trabajos" element={<Trabajos />} />
         <Route path="inventario" element={<Inventario />} />
+        <Route path="finanzas" element={<Finanzas />} />
+
+        {/* 2. AGREGAMOS LA RUTA PARA EL SUPERADMIN */}
+        <Route path="usuarios" element={<GestionUsuarios />} />
       </Route>
 
       {/* Ruta 404: Si escriben una URL que no existe, los manda al login */}

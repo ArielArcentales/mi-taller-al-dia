@@ -41,9 +41,23 @@ const obtenerAlertasInventario = async () => {
   return result.rows;
 };
 
+// NUEVA FUNCIÓN: Traer los trabajos anulados
+const obtenerTrabajosAnulados = async () => {
+  const query = `
+    SELECT t.id_trabajo, c.nombre_completo, t.descripcion_producto, t.ultima_actualizacion
+    FROM trabajos t
+    JOIN clientes c ON t.id_cliente = c.id_cliente
+    WHERE t.estado = 'Anulado'
+    ORDER BY t.ultima_actualizacion DESC;
+  `;
+  const result = await db.query(query);
+  return result.rows;
+};
+
 module.exports = {
   obtenerResumenTrabajos,
   obtenerIngresos,
   obtenerAlertasEntregas,
   obtenerAlertasInventario,
+  obtenerTrabajosAnulados, // Exportamos la nueva función
 };

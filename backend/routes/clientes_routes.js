@@ -1,17 +1,12 @@
 const express = require("express");
 const router = express.Router();
-const clienteController = require("../controllers/cliente_controller");
-
+const ClienteController = require("../controllers/cliente_controller");
 const { protegerRuta } = require("../middlewares/auth_middleware");
 
-router.use(protegerRuta);
-
-router.post("/", clienteController.registrarCliente);
-
-router.get("/", clienteController.obtenerClientes);
-
-router.put("/:id", clienteController.actualizarCliente);
-
-router.delete("/:id", clienteController.eliminarCliente);
+// Todos los roles pueden gestionar clientes
+router.get("/", protegerRuta, ClienteController.obtenerClientes);
+router.post("/", protegerRuta, ClienteController.registrarCliente);
+router.put("/:id", protegerRuta, ClienteController.actualizarCliente);
+router.delete("/:id", protegerRuta, ClienteController.eliminarCliente);
 
 module.exports = router;

@@ -1,32 +1,94 @@
 import { useState, useEffect } from "react";
 import {
-  DollarSign,
-  TrendingUp,
   AlertTriangle,
-  Clock,
-  Wrench,
-  Package,
-  ArrowRight,
   Loader2,
   CheckCircle2,
+  Banknote,
+  Package,
+  Plus,
+  Users,
+  CheckCircle,
+  ArrowRight,
+  FileText,
+  Archive,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 
-const DashboardInicio = () => {
-  // Estados para almacenar la información del dashboard y el indicador de carga
-  const [datos, setDatos] = useState(null);
-  const [cargando, setCargando] = useState(true);
+import ModalTrabajosAnulados from "../components/ModalTrabajosAnulados";
+import ModalGenerarReporte from "../components/ModalGenerarReporte";
 
-  // Se ejecuta automáticamente al abrir la pantalla para cargar las métricas (HU-08)
+const DashboardInicio = () => {
+  const [datos, setDatos] = useState(null);
+  const [trabajosLista, setTrabajosLista] = useState([]);
+  const [cargando, setCargando] = useState(true);
+  const [ingresosHoy, setIngresosHoy] = useState(0);
+
+  // Estados para los nuevos Modales
+  const [mostrarModalAnulados, setMostrarModalAnulados] = useState(false);
+  const [mostrarModalReporte, setMostrarModalReporte] = useState(false);
+
+  const usuarioInfo = JSON.parse(localStorage.getItem("usuario")) || {
+    username: "Ariel",
+  };
+  const opcionesFecha = {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  };
+  const fechaHoyStr = new Date().toLocaleDateString("es-ES", opcionesFecha);
+
   useEffect(() => {
     const cargarDashboard = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await axios.get("http://localhost:3000/api/dashboard", {
-          headers: { Authorization: `Bearer ${token}` },
+        const headers = { Authorization: `Bearer ${token}` };
+
+        const [resDashboard, resNotas, resTrabajos] = await Promise.all([
+          axios.get("http://localhost:3000/api/dashboard", { headers }),
+          axios.get("http://localhost:3000/api/notas-venta", { headers }),
+          axios.get("http://localhost:3000/api/trabajos", { headers }),
+        ]);
+
+        setDatos(resDashboard.data);
+        setTrabajosLista(resTrabajos.data || []);
+
+        const notasReales = resNotas.data || [];
+        const trabajos = resTrabajos.data || [];
+        let totalCajaHoy = 0;
+
+        const obtenerFechaContable = (fecha) => {
+          const d = new Date(fecha);
+          if (d.getHours() >= 21) d.setDate(d.getDate() + 1);
+          return d.toDateString();
+        };
+
+        const hoyContableStr = obtenerFechaContable(new Date());
+
+        notasReales.forEach((nota) => {
+          if (
+            nota.fecha_emision &&
+            obtenerFechaContable(nota.fecha_emision) === hoyContableStr
+          ) {
+            totalCajaHoy += parseFloat(nota.total || 0);
+          }
         });
-        setDatos(res.data);
+
+        trabajos.forEach((t) => {
+          const tieneNota = notasReales.some(
+            (n) => n.id_trabajo === t.id_trabajo,
+          );
+          if (!tieneNota && parseFloat(t.abono) > 0) {
+            const fechaTx =
+              t.fecha_entrega_prometida || new Date().toISOString();
+            if (obtenerFechaContable(fechaTx) === hoyContableStr) {
+              totalCajaHoy += parseFloat(t.abono || 0);
+            }
+          }
+        });
+
+        setIngresosHoy(totalCajaHoy);
       } catch (error) {
         console.error("Error cargando dashboard:", error);
       } finally {
@@ -36,285 +98,351 @@ const DashboardInicio = () => {
     cargarDashboard();
   }, []);
 
-  // Pantalla de carga mientras se obtienen los datos del backend
   if (cargando) {
     return (
-      <div className="flex flex-col items-center justify-center h-[70vh] text-slate-400">
-        <Loader2 className="animate-spin mb-4 text-taller-500" size={64} />
-        <p className="text-2xl font-bold">Calculando métricas del taller...</p>
+      <div className="flex flex-col items-center justify-center h-full text-slate-400 gap-6">
+        <Loader2 className="animate-spin text-taller-500" size={80} />
+        <p className="text-3xl font-bold">Preparando su tablero...</p>
       </div>
     );
   }
 
-  // Prevención de errores si los datos no cargan correctamente
   if (!datos) return null;
 
-  // LÓGICA DE NEGOCIO: Cálculos financieros seguros
-  const esperado = parseFloat(datos.finanzas.total_esperado || 0);
-  const recibido = parseFloat(datos.finanzas.total_abonos || 0);
-  const porCobrar = esperado - recibido;
-
-  // LÓGICA DE NEGOCIO: Cálculo de trabajos activos (Ignoramos Entregados y Anulados)
-  const totalActivos = datos.resumen_trabajos
-    .filter((t) => ["Pendiente", "En Proceso", "Listo"].includes(t.estado))
-    .reduce((acc, curr) => acc + parseInt(curr.total), 0);
-
-  // Utilidad para dar color visual a TODOS los estados del taller (Incluyendo Anulado)
-  const getColorEstado = (estado) => {
-    switch (estado) {
-      case "Pendiente":
-        return "bg-amber-100 text-amber-700 border-amber-200";
-      case "En Proceso":
-        return "bg-blue-100 text-blue-700 border-blue-200";
-      case "Listo":
-        return "bg-emerald-100 text-emerald-700 border-emerald-200";
-      case "Entregado":
-        return "bg-slate-100 text-slate-600 border-slate-200";
-      case "Anulado":
-        return "bg-red-100 text-red-700 border-red-200"; // Color específico para auditoría
-      default:
-        return "bg-slate-100 text-slate-600";
-    }
-  };
+  const trabajosListos = trabajosLista.filter((t) => t.estado === "Listo");
+  const inventarioBajo = datos.alertas.inventario_bajo || [];
+  const trabajosAnulados = datos.anulados || []; // Viene del backend actualizado
 
   return (
-    <div className="flex flex-col gap-8">
-      {/* TÍTULO DE LA SECCIÓN */}
-      <div>
-        <h2 className="text-4xl font-black text-slate-800">Panel Principal</h2>
-        <p className="text-xl text-slate-600 mt-2">
-          Resumen operativo y financiero del taller.
-        </p>
-      </div>
+    <>
+      {mostrarModalAnulados && (
+        <ModalTrabajosAnulados
+          anulados={trabajosAnulados}
+          onClose={() => setMostrarModalAnulados(false)}
+        />
+      )}
 
-      {/* FILA 1: TARJETAS DE INDICADORES / KPIs (HU-08) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-        {/* KPI: Abonos Recibidos */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-5">
-          <div className="w-16 h-16 rounded-xl bg-green-100 text-green-600 flex items-center justify-center shrink-0">
-            <DollarSign size={32} />
-          </div>
+      {mostrarModalReporte && (
+        <ModalGenerarReporte onClose={() => setMostrarModalReporte(false)} />
+      )}
+
+      <div className="flex flex-col h-[calc(100vh-80px)] min-h-[600px] w-full gap-6 p-2 lg:p-4 overflow-hidden">
+        {/* CABECERA */}
+        <div className="shrink-0 flex flex-col md:flex-row md:items-end justify-between gap-4 px-2">
           <div>
-            <p className="text-slate-500 font-bold text-sm uppercase tracking-wider">
-              Abonos Recibidos
+            <h1 className="text-5xl font-black text-slate-800 tracking-tight">
+              ¡Buenos días,{" "}
+              <span className="text-taller-600 capitalize">
+                {usuarioInfo.username}
+              </span>
+              !
+            </h1>
+            <p className="text-2xl text-slate-500 font-medium mt-1 capitalize">
+              {fechaHoyStr}
             </p>
-            <h3 className="text-3xl font-black text-slate-800">
-              ${recibido.toFixed(2)}
-            </h3>
           </div>
         </div>
 
-        {/* KPI: Saldo por Cobrar */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-5">
-          <div className="w-16 h-16 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
-            <TrendingUp size={32} />
-          </div>
-          <div>
-            <p className="text-slate-500 font-bold text-sm uppercase tracking-wider">
-              Saldo por Cobrar
-            </p>
-            <h3 className="text-3xl font-black text-slate-800">
-              ${porCobrar > 0 ? porCobrar.toFixed(2) : "0.00"}
-            </h3>
-          </div>
-        </div>
-
-        {/* KPI: Trabajos Activos */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-5">
-          <div className="w-16 h-16 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
-            <Wrench size={32} />
-          </div>
-          <div>
-            <p className="text-slate-500 font-bold text-sm uppercase tracking-wider">
-              Trabajos Activos
-            </p>
-            <h3 className="text-3xl font-black text-slate-800">
-              {totalActivos}
-            </h3>
-          </div>
-        </div>
-
-        {/* KPI: Órdenes Atrasadas */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-5">
-          <div className="w-16 h-16 rounded-xl bg-red-100 text-red-600 flex items-center justify-center shrink-0">
-            <Clock size={32} />
-          </div>
-          <div>
-            <p className="text-slate-500 font-bold text-sm uppercase tracking-wider">
-              Atrasados
-            </p>
-            <h3 className="text-3xl font-black text-slate-800">
-              {datos.alertas.trabajos_atrasados.length}
-            </h3>
-          </div>
-        </div>
-      </div>
-
-      {/* FILA 2: ALERTAS Y RESUMEN DETALLADO */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-        {/* COLUMNA IZQUIERDA: Lista de Trabajos Atrasados (HU-26) */}
-        <div className="xl:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col .h-[500px]">
-          <div className="p-6 border-b border-slate-100 flex justify-between items-center">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-red-100 text-red-600 rounded-lg">
-                <AlertTriangle size={24} />
-              </div>
-              <h3 className="text-2xl font-bold text-slate-800">
-                Urgente / Atrasados
-              </h3>
-            </div>
-            {/* Enlace directo a la gestión de trabajos */}
-            <Link
-              to="/trabajos"
-              className="text-taller-600 hover:text-taller-800 font-bold flex items-center gap-1"
-            >
-              Ver todos <ArrowRight size={18} />
-            </Link>
-          </div>
-
-          <div className="flex-1 overflow-auto p-6">
-            {datos.alertas.trabajos_atrasados.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-slate-400">
-                <CheckCircle2
-                  size={64}
-                  className="mb-4 text-emerald-400 opacity-50"
-                />
-                <p className="text-2xl font-bold text-slate-500">
-                  ¡Todo al día!
-                </p>
-                <p className="text-lg">No hay entregas atrasadas.</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {datos.alertas.trabajos_atrasados.map((t) => (
-                  <div
-                    key={t.id_trabajo}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-red-200 bg-red-50 rounded-xl gap-4"
-                  >
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-red-600 font-bold text-sm">
-                          Orden #{t.id_trabajo}
-                        </span>
-                        <span className="text-xs bg-red-200 text-red-800 px-2 py-0.5 rounded font-black uppercase tracking-wider">
-                          Atrasado
-                        </span>
-                      </div>
-                      <h4 className="text-lg font-bold text-slate-800">
-                        {t.descripcion_producto}
-                      </h4>
-                      <p className="text-slate-600 text-sm mt-1">
-                        Cliente:{" "}
-                        <span className="font-bold">{t.nombre_completo}</span>
-                      </p>
-                    </div>
-                    <div className="text-left sm:text-right">
-                      <p className="text-sm font-bold text-slate-500 uppercase">
-                        Debió entregarse el:
-                      </p>
-                      <p className="text-xl font-black text-red-600">
-                        {new Date(
-                          t.fecha_entrega_prometida,
-                        ).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* COLUMNA DERECHA: Estado General e Inventario */}
-        <div className="xl:col-span-1 flex flex-col gap-8 .h-[500px]">
-          {/* TARJETA SUPERIOR: Resumen de Estados (Embudo y Auditoría) */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 flex-1 flex flex-col min-h-0">
-            <div className="p-5 border-b border-slate-100">
-              <h3 className="text-xl font-bold text-slate-800">
-                Estado del Taller
-              </h3>
-            </div>
-            <div className="p-5 overflow-auto">
-              <div className="space-y-3">
-                {/* Iteramos sobre todos los estados, incluyendo Entregado y Anulado */}
-                {[
-                  "Pendiente",
-                  "En Proceso",
-                  "Listo",
-                  "Entregado",
-                  "Anulado",
-                ].map((estadoBuscado) => {
-                  const estadoData = datos.resumen_trabajos.find(
-                    (r) => r.estado === estadoBuscado,
-                  );
-                  const cantidad = estadoData ? parseInt(estadoData.total) : 0;
-
-                  return (
-                    <div
-                      key={estadoBuscado}
-                      className={`flex justify-between items-center p-3 rounded-lg border bg-white ${estadoBuscado === "Anulado" ? "border-red-100" : "border-slate-100"}`}
-                    >
-                      <span
-                        className={`font-bold ${estadoBuscado === "Anulado" ? "text-red-700" : "text-slate-700"}`}
-                      >
-                        {estadoBuscado}
-                      </span>
-                      <span
-                        className={`px-3 py-1 rounded-md font-black text-lg border ${getColorEstado(estadoBuscado)}`}
-                      >
-                        {cantidad}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-
-          {/* TARJETA INFERIOR: Alertas de Inventario (Bajo Stock) */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 flex-1 flex flex-col min-h-0">
-            <div className="p-5 border-b border-slate-100 flex justify-between items-center">
-              <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                <Package size={20} className="text-amber-500" /> Stock Bajo
-              </h3>
-            </div>
-            <div className="p-5 overflow-auto">
-              {datos.alertas.inventario_bajo.length === 0 ? (
-                <p className="text-center text-slate-500 font-medium mt-4">
-                  El inventario está abastecido.
-                </p>
-              ) : (
-                <div className="space-y-3">
-                  {datos.alertas.inventario_bajo.map((item, index) => (
-                    <div
-                      key={index}
-                      className="flex justify-between items-center p-3 border border-amber-200 bg-amber-50 rounded-lg"
-                    >
-                      <div>
-                        <p className="font-bold text-slate-800">
-                          {item.nombre}
-                        </p>
-                        <p className="text-xs text-slate-500 uppercase tracking-wide">
-                          {item.categoria}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-lg font-black text-amber-600">
-                          {item.cantidad_actual}
-                        </p>
-                        <p className="text-[10px] text-slate-500 font-bold uppercase">
-                          Min: {item.stock_minimo}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
+        {/* CONTENEDOR PRINCIPAL: ASIMETRÍA BENTO BOX (5 y 7) */}
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 flex-1 min-h-0">
+          {/* ========================================================================= */}
+          {/* LADO IZQUIERDO (Ocupa 5/12): URGENCIAS Y LISTOS */}
+          {/* ========================================================================= */}
+          <div className="xl:col-span-5 flex flex-col gap-6 h-full min-h-0">
+            {/* URGENCIAS */}
+            <div className="bg-white rounded-[2.5rem] shadow-sm border-2 border-slate-100 flex flex-col flex-1 min-h-0 overflow-hidden">
+              <Link
+                to="/dashboard/trabajos"
+                className="p-5 border-b-2 border-slate-50 flex justify-between items-center bg-red-50 hover:bg-red-100 transition-colors shrink-0 group cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <AlertTriangle size={32} className="text-red-600" />
+                  <h3 className="text-2xl font-black text-red-800">
+                    Urgencias
+                  </h3>
                 </div>
-              )}
+                <ArrowRight
+                  size={28}
+                  className="text-red-400 group-hover:text-red-600 group-hover:translate-x-1 transition-all"
+                />
+              </Link>
+
+              <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
+                {datos.alertas.trabajos_atrasados.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full text-slate-400 gap-2 text-center">
+                    <CheckCircle2
+                      size={64}
+                      className="text-emerald-400 opacity-30 mb-2"
+                    />
+                    <p className="text-2xl font-black text-slate-400">
+                      Sin atrasos
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {datos.alertas.trabajos_atrasados.map((t) => (
+                      <div
+                        key={t.id_trabajo}
+                        className="p-5 bg-white border-l-8 border-red-500 rounded-2xl shadow-sm border-y border-r border-slate-100 flex justify-between items-center gap-4"
+                      >
+                        <div className="overflow-hidden">
+                          <p className="text-slate-500 font-bold text-lg mb-1">
+                            Orden #{t.id_trabajo}
+                          </p>
+                          <h4 className="text-2xl font-black text-slate-800 leading-tight truncate">
+                            {t.descripcion_producto}
+                          </h4>
+                        </div>
+                        <p className="text-red-600 text-lg font-bold bg-red-50 px-3 py-2 rounded-lg border border-red-100 shrink-0 text-center leading-tight">
+                          <span className="block text-xs uppercase text-red-400">
+                            Atrasado
+                          </span>
+                          {new Date(
+                            t.fecha_entrega_prometida,
+                          ).toLocaleDateString("es-ES", {
+                            day: "2-digit",
+                            month: "short",
+                          })}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* LISTOS PARA RETIRAR */}
+            <div className="bg-white rounded-[2.5rem] shadow-sm border-2 border-slate-100 flex flex-col flex-1 min-h-0 overflow-hidden">
+              <Link
+                to="/dashboard/trabajos"
+                className="p-5 border-b-2 border-slate-50 flex justify-between items-center bg-emerald-50 hover:bg-emerald-100 transition-colors shrink-0 group cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <CheckCircle size={32} className="text-emerald-600" />
+                  <h3 className="text-2xl font-black text-emerald-800">
+                    Listos
+                  </h3>
+                </div>
+                <ArrowRight
+                  size={28}
+                  className="text-emerald-400 group-hover:text-emerald-600 group-hover:translate-x-1 transition-all"
+                />
+              </Link>
+
+              <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
+                {trabajosListos.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full text-slate-400 gap-2 text-center">
+                    <Package
+                      size={64}
+                      className="text-slate-300 opacity-50 mb-2"
+                    />
+                    <p className="text-2xl font-black text-slate-400">
+                      Nada por retirar
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {trabajosListos.map((t) => (
+                      <div
+                        key={t.id_trabajo}
+                        className="p-5 bg-white border-l-8 border-emerald-500 rounded-2xl shadow-sm border-y border-r border-slate-100"
+                      >
+                        <p className="text-slate-500 font-bold text-lg mb-1">
+                          Orden #{t.id_trabajo}
+                        </p>
+                        <h4 className="text-2xl font-black text-slate-800 leading-tight mb-2 truncate">
+                          {t.descripcion_producto}
+                        </h4>
+                        <p className="text-slate-700 text-lg font-bold flex items-center gap-2 truncate">
+                          <Users
+                            size={18}
+                            className="text-slate-400 shrink-0"
+                          />
+                          {t.nombre_completo}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* ========================================================================= */}
+          {/* LADO DERECHO (Ocupa 7/12): TARJETAS TOP Y ÁREA INFERIOR */}
+          {/* ========================================================================= */}
+          <div className="xl:col-span-7 flex flex-col gap-6 h-full min-h-0">
+            {/* FILA SUPERIOR DERECHA (Las 3 tarjetas del mismo tamaño) */}
+            <div className="grid grid-cols-3 gap-6 shrink-0 h-48">
+              {/* 1. CAJA HOY */}
+              <Link
+                to="/dashboard/finanzas"
+                className="bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-[2.5rem] p-6 shadow-xl shadow-emerald-500/30 flex flex-col justify-between hover:scale-[1.02] transition-transform group"
+              >
+                <div className="flex justify-between items-start text-emerald-50">
+                  <p className="text-lg font-black uppercase tracking-widest leading-tight">
+                    Caja
+                    <br />
+                    Hoy
+                  </p>
+                  <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm group-hover:bg-white/30 transition-colors">
+                    <Banknote size={28} />
+                  </div>
+                </div>
+                <h2 className="text-4xl 2xl:text-5xl font-black text-white leading-none truncate">
+                  ${ingresosHoy.toFixed(2)}
+                </h2>
+              </Link>
+
+              {/* 2. NUEVO ENCARGO */}
+              <Link
+                to="/dashboard/trabajos"
+                className="bg-taller-950 text-white rounded-[2.5rem] p-6 shadow-lg shadow-taller-950/20 flex flex-col justify-between hover:scale-[1.02] transition-transform group border-2 border-taller-800"
+              >
+                <div className="flex justify-between items-start text-slate-300">
+                  <p className="text-lg font-black uppercase tracking-widest leading-tight">
+                    Nuevo
+                    <br />
+                    Encargo
+                  </p>
+                  <div className="p-3 bg-white/10 rounded-xl group-hover:bg-white/20 transition-colors">
+                    <Plus size={28} className="text-white" />
+                  </div>
+                </div>
+                <div className="text-right">
+                  <ArrowRight
+                    size={36}
+                    className="text-taller-400 group-hover:text-white transition-colors inline-block"
+                  />
+                </div>
+              </Link>
+
+              {/* 3. DIRECTORIO DE CLIENTES */}
+              <Link
+                to="/dashboard/clientes"
+                className="bg-white rounded-[2.5rem] p-6 shadow-sm flex flex-col justify-between hover:scale-[1.02] transition-transform group border-4 border-slate-100 hover:border-taller-200"
+              >
+                <div className="flex justify-between items-start text-slate-400 group-hover:text-taller-500 transition-colors">
+                  <p className="text-lg font-black uppercase tracking-widest leading-tight">
+                    Ver
+                    <br />
+                    Clientes
+                  </p>
+                  <div className="p-3 bg-slate-100 group-hover:bg-taller-50 rounded-xl transition-colors">
+                    <Users
+                      size={28}
+                      className="text-slate-600 group-hover:text-taller-600"
+                    />
+                  </div>
+                </div>
+                <div className="text-right">
+                  <ArrowRight
+                    size={36}
+                    className="text-slate-300 group-hover:text-taller-500 transition-colors inline-block"
+                  />
+                </div>
+              </Link>
+            </div>
+
+            {/* ÁREA INFERIOR DERECHA (Sub-Grid 50/50: Por comprar a la izq, Botones a la der) */}
+            <div className="flex-1 grid grid-cols-2 gap-6 min-h-0">
+              {/* 4. LISTA: POR COMPRAR */}
+              <div className="col-span-1 bg-white rounded-[2.5rem] shadow-sm border-2 border-slate-100 flex flex-col h-full overflow-hidden">
+                <Link
+                  to="/dashboard/inventario"
+                  className="p-5 border-b-2 border-slate-50 flex justify-between items-center bg-amber-50 hover:bg-amber-100 transition-colors shrink-0 group cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <Package size={28} className="text-amber-600" />
+                    <h3 className="text-xl font-black text-amber-800">
+                      Por Comprar
+                    </h3>
+                  </div>
+                  <ArrowRight
+                    size={24}
+                    className="text-amber-400 group-hover:text-amber-600 group-hover:translate-x-1 transition-all"
+                  />
+                </Link>
+
+                <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+                  {inventarioBajo.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-full text-slate-400 gap-2 text-center">
+                      <CheckCircle2
+                        size={56}
+                        className="text-amber-300 opacity-50 mb-2"
+                      />
+                      <p className="text-xl font-black text-slate-400">
+                        Todo en Stock
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {inventarioBajo.map((item, index) => (
+                        <div
+                          key={index}
+                          className="p-4 bg-white border-l-8 border-amber-500 rounded-2xl shadow-sm flex flex-col border-y border-r border-slate-100 relative"
+                        >
+                          <h4 className="text-lg font-black text-slate-800 leading-tight truncate pr-8">
+                            {item.nombre}
+                          </h4>
+                          <p className="text-slate-500 font-bold text-xs uppercase tracking-wide mt-1">
+                            Min: {item.stock_minimo}
+                          </p>
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1">
+                            <p className="text-xl font-black text-amber-600 leading-none text-center">
+                              {item.cantidad_actual}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* 5. NUEVOS BOTONES DE ACCIÓN (Transformados de Link a button) */}
+              <div className="col-span-1 flex flex-col gap-6 h-full min-h-0">
+                {/* BOTÓN: GENERAR REPORTE (Abre Modal) */}
+                <button
+                  onClick={() => setMostrarModalReporte(true)}
+                  className="flex-1 w-full bg-white border-4 border-slate-100 rounded-[2.5rem] p-6 shadow-sm flex flex-col items-center justify-center gap-3 hover:border-indigo-300 hover:bg-indigo-50 transition-colors text-slate-700 hover:text-indigo-800 group cursor-pointer"
+                >
+                  <div className="p-3 bg-slate-100 group-hover:bg-indigo-100 rounded-full transition-colors">
+                    <FileText
+                      size={36}
+                      className="text-slate-500 group-hover:text-indigo-600"
+                    />
+                  </div>
+                  <span className="text-2xl font-black text-center leading-tight">
+                    Generar
+                    <br />
+                    Reporte
+                  </span>
+                </button>
+
+                {/* BOTÓN: TRABAJOS ANULADOS (Abre Modal) */}
+                <button
+                  onClick={() => setMostrarModalAnulados(true)}
+                  className="flex-1 w-full bg-white border-4 border-slate-100 rounded-[2.5rem] p-6 shadow-sm flex flex-col items-center justify-center gap-3 hover:border-slate-300 hover:bg-slate-50 transition-colors text-slate-600 hover:text-slate-900 group cursor-pointer"
+                >
+                  <div className="p-3 bg-slate-100 group-hover:bg-slate-200 rounded-full transition-colors">
+                    <Archive
+                      size={36}
+                      className="text-slate-500 group-hover:text-slate-700"
+                    />
+                  </div>
+                  <span className="text-2xl font-black text-center leading-tight">
+                    Trabajos
+                    <br />
+                    Anulados
+                  </span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 

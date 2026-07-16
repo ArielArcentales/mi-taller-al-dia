@@ -3,30 +3,32 @@ const AppError = require("../exceptions/AppError");
 
 const registrarTrabajo = async (req, res, next) => {
   try {
-    const {
-      id_cliente,
-      descripcion_producto,
-      descripcion_reparacion,
-      precio,
-      abono,
-      fecha_entrega_prometida,
-    } = req.body;
+    const { id_cliente, articulos, abono, fecha_entrega_prometida } = req.body;
 
     if (
       !id_cliente ||
-      !descripcion_producto ||
-      !descripcion_reparacion ||
-      precio === undefined
+      !articulos ||
+      !Array.isArray(articulos) ||
+      articulos.length === 0
     ) {
       return next(
-        new AppError(
-          "Faltan datos obligatorios: cliente, producto, reparación o precio",
-          400,
-        ),
+        new AppError("Faltan datos obligatorios o artículos a reparar", 400),
       );
     }
 
-    if (abono > precio) {
+    // MAGIA: Calculamos el total y generamos un resumen de nombres
+    let precioTotal = 0;
+    const nombresProductos = [];
+
+    articulos.forEach((art) => {
+      precioTotal += parseFloat(art.precio || 0);
+      nombresProductos.push(art.producto);
+    });
+
+    const descripcion_producto = nombresProductos.join(" y ");
+    const descripcion_reparacion = JSON.stringify(articulos); // Guardamos todo el array como texto JSON
+
+    if (parseFloat(abono || 0) > precioTotal) {
       return next(
         new AppError(
           "El abono no puede ser mayor al precio total del trabajo",
@@ -39,21 +41,20 @@ const registrarTrabajo = async (req, res, next) => {
       id_cliente,
       descripcion_producto,
       descripcion_reparacion,
-      precio,
-      abono || 0.0,
+      precioTotal,
+      parseFloat(abono || 0),
       fecha_entrega_prometida || null,
     );
 
-    res.status(201).json({
-      mensaje: "Orden de trabajo creada con éxito",
-      trabajo: nuevoTrabajo,
-    });
+    res
+      .status(201)
+      .json({
+        mensaje: "Orden de trabajo creada con éxito",
+        trabajo: nuevoTrabajo,
+      });
   } catch (error) {
-    if (error.code === "23503") {
-      return next(
-        new AppError("El cliente seleccionado no existe en el sistema", 404),
-      );
-    }
+    if (error.code === "23503")
+      return next(new AppError("El cliente no existe", 404));
     next(error);
   }
 };
@@ -62,7 +63,28 @@ const obtenerTrabajos = async (req, res, next) => {
   try {
     const { estado } = req.query;
     const trabajos = await TrabajoModel.obtenerTrabajos(estado);
-    res.status(200).json(trabajos);
+
+    // Transformamos el JSON guardado de vuelta a un arreglo para React
+    const trabajosFormateados = trabajos.map((t) => {
+      let listaArticulos = [];
+      try {
+        listaArticulos = JSON.parse(t.descripcion_reparacion);
+        if (!Array.isArray(listaArticulos)) throw new Error();
+      } catch (e) {
+        // Si falla, es una orden antigua de 1 solo producto, la adaptamos al nuevo formato
+        listaArticulos = [
+          {
+            id_temp: t.id_trabajo,
+            producto: t.descripcion_producto,
+            reparacion: t.descripcion_reparacion,
+            precio: t.precio,
+          },
+        ];
+      }
+      return { ...t, articulos: listaArticulos };
+    });
+
+    res.status(200).json(trabajosFormateados);
   } catch (error) {
     next(error);
   }
@@ -72,7 +94,6 @@ const actualizarEstadoTrabajo = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { estado } = req.body;
-
     const estadosValidos = [
       "Pendiente",
       "En Proceso",
@@ -80,44 +101,38 @@ const actualizarEstadoTrabajo = async (req, res, next) => {
       "Entregado",
       "Anulado",
     ];
+
     if (!estadosValidos.includes(estado)) {
-      return next(
-        new AppError(
-          "Estado no válido. Use: Pendiente, En Proceso, Listo o Entregado",
-          400,
-        ),
-      );
+      return next(new AppError("Estado no válido.", 400));
     }
 
     const trabajoActualizado = await TrabajoModel.actualizarEstado(id, estado);
-
-    if (!trabajoActualizado) {
+    if (!trabajoActualizado)
       return next(new AppError("El trabajo no fue encontrado", 404));
-    }
 
-    res.status(200).json({
-      mensaje: `El trabajo ahora está marcado como: ${estado}`,
-      trabajo: trabajoActualizado,
-    });
+    res.status(200).json({ mensaje: `Marcado como: ${estado}` });
   } catch (error) {
     next(error);
   }
 };
 
-// Controlador para procesar la edición de detalles de un trabajo
 const editarDetallesTrabajo = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const {
-      descripcion_producto,
-      descripcion_reparacion,
-      precio,
-      abono,
-      fecha_entrega_prometida,
-    } = req.body;
+    const { articulos, abono, fecha_entrega_prometida } = req.body;
 
-    // Validación de negocio: El abono no puede superar el precio modificado
-    if (abono > precio) {
+    let precioTotal = 0;
+    const nombresProductos = [];
+
+    articulos.forEach((art) => {
+      precioTotal += parseFloat(art.precio || 0);
+      nombresProductos.push(art.producto);
+    });
+
+    const descripcion_producto = nombresProductos.join(" y ");
+    const descripcion_reparacion = JSON.stringify(articulos);
+
+    if (parseFloat(abono || 0) > precioTotal) {
       return next(
         new AppError("El abono no puede ser mayor al precio total", 400),
       );
@@ -127,40 +142,27 @@ const editarDetallesTrabajo = async (req, res, next) => {
       id,
       descripcion_producto,
       descripcion_reparacion,
-      precio,
-      abono || 0.0,
+      precioTotal,
+      parseFloat(abono || 0),
       fecha_entrega_prometida || null,
     );
 
-    if (!trabajoActualizado) {
-      return next(
-        new AppError("El trabajo no fue encontrado para editar", 404),
-      );
-    }
+    if (!trabajoActualizado)
+      return next(new AppError("Trabajo no encontrado", 404));
 
-    res.status(200).json({
-      mensaje: "Detalles del trabajo actualizados con éxito",
-      trabajo: trabajoActualizado,
-    });
+    res.status(200).json({ mensaje: "Detalles actualizados" });
   } catch (error) {
     next(error);
   }
 };
 
-// Controlador para manejar la eliminación/anulación de un trabajo
 const eliminarOrdenTrabajo = async (req, res, next) => {
   try {
     const { id } = req.params;
-
     const trabajoEliminado = await TrabajoModel.eliminarTrabajo(id);
-
-    if (!trabajoEliminado) {
-      return next(new AppError("El trabajo no existe o ya fue eliminado", 404));
-    }
-
-    res.status(200).json({
-      mensaje: "Orden de trabajo anulada correctamente",
-    });
+    if (!trabajoEliminado)
+      return next(new AppError("El trabajo no existe", 404));
+    res.status(200).json({ mensaje: "Orden anulada" });
   } catch (error) {
     next(error);
   }

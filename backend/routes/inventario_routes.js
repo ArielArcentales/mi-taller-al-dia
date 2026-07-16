@@ -1,14 +1,17 @@
 const express = require("express");
 const router = express.Router();
-const inventarioController = require("../controllers/inventario_controller");
+const InventarioController = require("../controllers/inventario_controller");
 const { protegerRuta } = require("../middlewares/auth_middleware");
 
-router.use(protegerRuta);
-
-router.post("/", inventarioController.registrarProducto);
-router.get("/", inventarioController.obtenerInventario);
-router.get("/:id/historial", inventarioController.obtenerHistorial);
-router.put("/:id", inventarioController.actualizarProducto);
-router.delete("/:id", inventarioController.eliminarProducto);
+// Todos pueden gestionar el inventario
+router.get("/", protegerRuta, InventarioController.obtenerInventario);
+router.post("/", protegerRuta, InventarioController.registrarProducto);
+router.put("/:id", protegerRuta, InventarioController.actualizarProducto);
+router.delete("/:id", protegerRuta, InventarioController.eliminarProducto);
+router.get(
+  "/:id/historial",
+  protegerRuta,
+  InventarioController.obtenerHistorial,
+);
 
 module.exports = router;
