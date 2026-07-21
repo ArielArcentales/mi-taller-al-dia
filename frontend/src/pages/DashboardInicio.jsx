@@ -11,12 +11,13 @@ import {
   ArrowRight,
   FileText,
   Archive,
+  Bell,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 
-import ModalTrabajosAnulados from "../components/ModalTrabajosAnulados";
-import ModalGenerarReporte from "../components/ModalGenerarReporte";
+import ModalTrabajosAnulados from "../components/trabajos/ModalTrabajosAnulados";
+import ModalGenerarReporte from "../components/finanzas/ModalGenerarReporte";
 
 const DashboardInicio = () => {
   const [datos, setDatos] = useState(null);
@@ -27,6 +28,15 @@ const DashboardInicio = () => {
   // Estados para los nuevos Modales
   const [mostrarModalAnulados, setMostrarModalAnulados] = useState(false);
   const [mostrarModalReporte, setMostrarModalReporte] = useState(false);
+  const [mostrarNotificaciones, setMostrarNotificaciones] = useState(false);
+
+  // Lazy Initial State para notificaciones (sin advertencias del linter)
+  const [notificaciones] = useState(() => {
+    const notifsGuardadas =
+      JSON.parse(localStorage.getItem("taller_notificaciones")) || [];
+    const hoyLocal = new Date().toLocaleDateString("es-ES");
+    return notifsGuardadas.filter((n) => n.fecha === hoyLocal);
+  });
 
   const usuarioInfo = JSON.parse(localStorage.getItem("usuario")) || {
     username: "Ariel",
@@ -59,6 +69,7 @@ const DashboardInicio = () => {
         let totalCajaHoy = 0;
 
         const obtenerFechaContable = (fecha) => {
+          if (!fecha) return null;
           const d = new Date(fecha);
           if (d.getHours() >= 21) d.setDate(d.getDate() + 1);
           return d.toDateString();
@@ -66,24 +77,43 @@ const DashboardInicio = () => {
 
         const hoyContableStr = obtenerFechaContable(new Date());
 
+        // ====================================================================
+        // FASE 1: DINERO QUE ENTRÓ HOY POR ABONOS
+        // ====================================================================
+        trabajos.forEach((t) => {
+          const fechaIngreso = t.fecha_ingreso;
+
+          if (
+            fechaIngreso &&
+            obtenerFechaContable(fechaIngreso) === hoyContableStr
+          ) {
+            totalCajaHoy += parseFloat(t.abono || 0);
+          }
+        });
+
+        // ====================================================================
+        // FASE 2: DINERO QUE ENTRÓ HOY POR ENTREGAS (Saldos pagados)
+        // ====================================================================
         notasReales.forEach((nota) => {
           if (
             nota.fecha_emision &&
             obtenerFechaContable(nota.fecha_emision) === hoyContableStr
           ) {
-            totalCajaHoy += parseFloat(nota.total || 0);
-          }
-        });
+            const trabajoAsociado = trabajos.find(
+              (t) => t.id_trabajo === nota.id_trabajo,
+            );
 
-        trabajos.forEach((t) => {
-          const tieneNota = notasReales.some(
-            (n) => n.id_trabajo === t.id_trabajo,
-          );
-          if (!tieneNota && parseFloat(t.abono) > 0) {
-            const fechaTx =
-              t.fecha_entrega_prometida || new Date().toISOString();
-            if (obtenerFechaContable(fechaTx) === hoyContableStr) {
-              totalCajaHoy += parseFloat(t.abono || 0);
+            if (trabajoAsociado) {
+              const precioTotal = parseFloat(trabajoAsociado.precio || 0);
+              const abonoPrevio = parseFloat(trabajoAsociado.abono || 0);
+              const saldoCobradoHoy = precioTotal - abonoPrevio;
+
+              if (saldoCobradoHoy > 0) {
+                totalCajaHoy += saldoCobradoHoy;
+              }
+            } else {
+              // Notas de venta manuales (sin orden asociada)
+              totalCajaHoy += parseFloat(nota.total || 0);
             }
           }
         });
@@ -95,6 +125,7 @@ const DashboardInicio = () => {
         setCargando(false);
       }
     };
+
     cargarDashboard();
   }, []);
 
@@ -111,7 +142,7 @@ const DashboardInicio = () => {
 
   const trabajosListos = trabajosLista.filter((t) => t.estado === "Listo");
   const inventarioBajo = datos.alertas.inventario_bajo || [];
-  const trabajosAnulados = datos.anulados || []; // Viene del backend actualizado
+  const trabajosAnulados = datos.anulados || [];
 
   return (
     <>
@@ -126,9 +157,11 @@ const DashboardInicio = () => {
         <ModalGenerarReporte onClose={() => setMostrarModalReporte(false)} />
       )}
 
-      <div className="flex flex-col h-[calc(100vh-80px)] min-h-[600px] w-full gap-6 p-2 lg:p-4 overflow-hidden">
-        {/* CABECERA */}
-        <div className="shrink-0 flex flex-col md:flex-row md:items-end justify-between gap-4 px-2">
+      <div className="flex flex-col h-[calc(100vh-80px)] .min-h-[600px] w-full gap-6 p-2 lg:p-4 overflow-hidden">
+        {/* ========================================================================= */}
+        {/* CABECERA CON CAMPANA DE NOTIFICACIONES */}
+        {/* ========================================================================= */}
+        <div className="shrink-0 flex flex-col md:flex-row md:items-start justify-between gap-4 px-2">
           <div>
             <h1 className="text-5xl font-black text-slate-800 tracking-tight">
               ¡Buenos días,{" "}
@@ -140,6 +173,59 @@ const DashboardInicio = () => {
             <p className="text-2xl text-slate-500 font-medium mt-1 capitalize">
               {fechaHoyStr}
             </p>
+          </div>
+
+          <div className="relative z-50">
+            <button
+              onClick={() => setMostrarNotificaciones(!mostrarNotificaciones)}
+              className={`relative p-4 transition-colors rounded-2xl border-2 ${mostrarNotificaciones ? "bg-indigo-50 border-indigo-200 text-indigo-600" : "bg-white border-slate-200 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50"}`}
+            >
+              <Bell size={32} />
+              {notificaciones.length > 0 && (
+                <span className="absolute -top-2 -right-2 w-7 h-7 bg-red-500 text-white text-sm font-black flex items-center justify-center rounded-full border-2 border-white shadow-sm">
+                  {notificaciones.length}
+                </span>
+              )}
+            </button>
+
+            {mostrarNotificaciones && (
+              <div className="absolute right-0 top-full mt-4 w-80 bg-white border-2 border-slate-100 rounded-3xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2">
+                <div className="p-5 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                  <span className="font-black text-slate-800">
+                    Registro de Mensajes
+                  </span>
+                  <span className="text-xs font-bold text-indigo-600 bg-indigo-100 px-3 py-1 rounded-lg">
+                    {notificaciones.length} hoy
+                  </span>
+                </div>
+                <div className="p-2 max-h-72 overflow-y-auto custom-scrollbar">
+                  {notificaciones.length > 0 ? (
+                    notificaciones.map((notif, idx) => (
+                      <div
+                        key={idx}
+                        className="p-4 hover:bg-slate-50 rounded-2xl transition-colors border-b border-slate-50 last:border-0"
+                      >
+                        <p className="text-sm font-bold text-slate-800">
+                          {notif.texto}
+                        </p>
+                        <div className="flex items-center justify-between mt-2">
+                          <p className="text-xs font-bold text-indigo-500">
+                            {notif.detalle}
+                          </p>
+                          <p className="text-xs text-slate-400">
+                            {notif.tiempo}
+                          </p>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-8 text-center text-slate-500 text-sm font-medium">
+                      No hay notificaciones registradas hoy.
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -183,7 +269,7 @@ const DashboardInicio = () => {
                     {datos.alertas.trabajos_atrasados.map((t) => (
                       <div
                         key={t.id_trabajo}
-                        className="p-5 bg-white border-l-8 border-red-500 rounded-2xl shadow-sm border-y border-r border-slate-100 flex justify-between items-center gap-4"
+                        className="p-5 bg-white border-l-8 .border-red-500 rounded-2xl shadow-sm border-y border-r border-slate-100 flex justify-between items-center gap-4"
                       >
                         <div className="overflow-hidden">
                           <p className="text-slate-500 font-bold text-lg mb-1">
@@ -245,7 +331,7 @@ const DashboardInicio = () => {
                     {trabajosListos.map((t) => (
                       <div
                         key={t.id_trabajo}
-                        className="p-5 bg-white border-l-8 border-emerald-500 rounded-2xl shadow-sm border-y border-r border-slate-100"
+                        className="p-5 bg-white border-l-8 .border-emerald-500 rounded-2xl shadow-sm border-y border-r border-slate-100"
                       >
                         <p className="text-slate-500 font-bold text-lg mb-1">
                           Orden #{t.id_trabajo}
@@ -272,12 +358,12 @@ const DashboardInicio = () => {
           {/* LADO DERECHO (Ocupa 7/12): TARJETAS TOP Y ÁREA INFERIOR */}
           {/* ========================================================================= */}
           <div className="xl:col-span-7 flex flex-col gap-6 h-full min-h-0">
-            {/* FILA SUPERIOR DERECHA (Las 3 tarjetas del mismo tamaño) */}
+            {/* FILA SUPERIOR DERECHA */}
             <div className="grid grid-cols-3 gap-6 shrink-0 h-48">
               {/* 1. CAJA HOY */}
               <Link
                 to="/dashboard/finanzas"
-                className="bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-[2.5rem] p-6 shadow-xl shadow-emerald-500/30 flex flex-col justify-between hover:scale-[1.02] transition-transform group"
+                className="bg-linear-to-br from-emerald-400 to-emerald-600 rounded-[2.5rem] p-6 shadow-xl shadow-emerald-500/30 flex flex-col justify-between hover:scale-[1.02] transition-transform group"
               >
                 <div className="flex justify-between items-start text-emerald-50">
                   <p className="text-lg font-black uppercase tracking-widest leading-tight">
@@ -344,7 +430,7 @@ const DashboardInicio = () => {
               </Link>
             </div>
 
-            {/* ÁREA INFERIOR DERECHA (Sub-Grid 50/50: Por comprar a la izq, Botones a la der) */}
+            {/* ÁREA INFERIOR DERECHA */}
             <div className="flex-1 grid grid-cols-2 gap-6 min-h-0">
               {/* 4. LISTA: POR COMPRAR */}
               <div className="col-span-1 bg-white rounded-[2.5rem] shadow-sm border-2 border-slate-100 flex flex-col h-full overflow-hidden">
@@ -380,7 +466,7 @@ const DashboardInicio = () => {
                       {inventarioBajo.map((item, index) => (
                         <div
                           key={index}
-                          className="p-4 bg-white border-l-8 border-amber-500 rounded-2xl shadow-sm flex flex-col border-y border-r border-slate-100 relative"
+                          className="p-4 bg-white border-l-8 .border-amber-500 rounded-2xl shadow-sm flex flex-col border-y border-r border-slate-100 relative"
                         >
                           <h4 className="text-lg font-black text-slate-800 leading-tight truncate pr-8">
                             {item.nombre}
@@ -400,9 +486,9 @@ const DashboardInicio = () => {
                 </div>
               </div>
 
-              {/* 5. NUEVOS BOTONES DE ACCIÓN (Transformados de Link a button) */}
+              {/* 5. NUEVOS BOTONES DE ACCIÓN */}
               <div className="col-span-1 flex flex-col gap-6 h-full min-h-0">
-                {/* BOTÓN: GENERAR REPORTE (Abre Modal) */}
+                {/* BOTÓN: GENERAR REPORTE */}
                 <button
                   onClick={() => setMostrarModalReporte(true)}
                   className="flex-1 w-full bg-white border-4 border-slate-100 rounded-[2.5rem] p-6 shadow-sm flex flex-col items-center justify-center gap-3 hover:border-indigo-300 hover:bg-indigo-50 transition-colors text-slate-700 hover:text-indigo-800 group cursor-pointer"
@@ -420,7 +506,7 @@ const DashboardInicio = () => {
                   </span>
                 </button>
 
-                {/* BOTÓN: TRABAJOS ANULADOS (Abre Modal) */}
+                {/* BOTÓN: TRABAJOS ANULADOS */}
                 <button
                   onClick={() => setMostrarModalAnulados(true)}
                   className="flex-1 w-full bg-white border-4 border-slate-100 rounded-[2.5rem] p-6 shadow-sm flex flex-col items-center justify-center gap-3 hover:border-slate-300 hover:bg-slate-50 transition-colors text-slate-600 hover:text-slate-900 group cursor-pointer"

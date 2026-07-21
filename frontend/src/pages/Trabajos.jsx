@@ -16,8 +16,8 @@ import {
   CheckCircle2,
 } from "lucide-react";
 
-import FormularioTrabajo from "../components/FormularioTrabajo";
-import ModalDetalleTrabajo from "../components/ModalDetalleTrabajo";
+import FormularioTrabajo from "../components/trabajos/FormularioTrabajo";
+import ModalDetalleTrabajo from "../components/trabajos/ModalDetalleTrabajo";
 
 const Trabajos = () => {
   const [clientes, setClientes] = useState([]);
@@ -69,7 +69,6 @@ const Trabajos = () => {
       }
     };
     inicializarPantalla();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const cambiarEstado = async (id, nuevoEstado) => {

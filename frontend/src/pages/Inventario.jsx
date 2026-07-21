@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import FormularioInventario from "../components/FormularioInventario";
-import DirectorioInventario from "../components/DirectorioInventario";
-import ModalAjusteStock from "../components/ModalAjusteStock";
-import ModalArchivarMaterial from "../components/ModalArchivarMaterial";
-import ModalHistorialInventario from "../components/ModalHistorialInventario";
+import FormularioInventario from "../components/inventario/FormularioInventario";
+import DirectorioInventario from "../components/inventario/DirectorioInventario";
+import ModalAjusteStock from "../components/inventario/ModalAjusteStock";
+import ModalArchivarMaterial from "../components/inventario/ModalArchivarMaterial";
+import ModalHistorialInventario from "../components/inventario/ModalHistorialInventario";
 
 const Inventario = () => {
   const [inventario, setInventario] = useState([]);

@@ -39,7 +39,7 @@ const ModalTrabajosAnulados = ({ anulados = [], onClose }) => {
               {anulados.map((t) => (
                 <div
                   key={t.id_trabajo}
-                  className="p-5 bg-slate-50 border-l-8 border-slate-400 rounded-2xl shadow-sm border-y border-r border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4"
+                  className="p-5 bg-slate-50 border-l-8 .border-slate-400 rounded-2xl shadow-sm border-y border-r border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4"
                 >
                   <div className="overflow-hidden">
                     <p className="text-slate-500 font-bold text-sm mb-1">

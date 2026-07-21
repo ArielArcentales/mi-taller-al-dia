@@ -2,11 +2,11 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { Calendar } from "lucide-react"; // Importamos el ícono del calendario
+import { Calendar } from "lucide-react";
 
-import ResumenFinanciero from "../components/ResumenFinanciero";
-import DirectorioFinanzas from "../components/DirectorioFinanzas";
-import ModalCalendarioFinanzas from "../components/ModalCalendarioFinanzas"; // Importamos el nuevo modal
+import ResumenFinanciero from "../components/finanzas/ResumenFinanciero";
+import DirectorioFinanzas from "../components/finanzas/DirectorioFinanzas";
+import ModalCalendarioFinanzas from "../components/finanzas/ModalCalendarioFinanzas";
 
 const Finanzas = () => {
   const [transacciones, setTransacciones] = useState([]);
@@ -17,7 +17,6 @@ const Finanzas = () => {
   const [filtroMetodo, setFiltroMetodo] = useState("");
   const [mostrarDropdownMetodo, setMostrarDropdownMetodo] = useState(false);
 
-  // NUEVOS ESTADOS PARA EL CALENDARIO
   const [mostrarCalendario, setMostrarCalendario] = useState(false);
   const [fechaSeleccionada, setFechaSeleccionada] = useState(null);
 
@@ -36,50 +35,98 @@ const Finanzas = () => {
       const trabajos = resTrabajos.data || [];
       const catalogoCompleto = [];
 
-      notasReales.forEach((nota) => {
-        let numComprobante = nota.numero_comprobante || "";
-        if (numComprobante.includes("COMPROBANTE-")) {
-          const num = numComprobante.split("-")[1];
-          numComprobante = `NV-${String(num).padStart(5, "0")}`;
-        }
-
-        catalogoCompleto.push({
-          id_transaccion: `real-${nota.id_nota_venta}`,
-          numero_comprobante: numComprobante,
-          nombre_completo: nota.nombre_completo,
-          telefono: nota.telefono,
-          descripcion_producto: nota.descripcion_producto,
-          metodo_pago: nota.metodo_pago,
-          total: parseFloat(nota.total),
-          fecha_emision: nota.fecha_emision,
-          detalles_adicionales: nota.detalles_adicionales,
-          es_anticipo: false,
-        });
-      });
-
+      // ====================================================================
+      // 1. REGISTRAR TODOS LOS ABONOS
+      // ====================================================================
       trabajos.forEach((t) => {
-        const tieneNota = notasReales.some(
-          (n) => n.id_trabajo === t.id_trabajo,
-        );
-
-        if (!tieneNota && parseFloat(t.abono) > 0) {
+        if (parseFloat(t.abono) > 0) {
           const numeroFormateado = String(t.id_trabajo).padStart(5, "0");
           catalogoCompleto.push({
-            id_transaccion: `prov-${t.id_trabajo}`,
-            numero_comprobante:
-              t.estado === "Entregado"
-                ? `NV-${numeroFormateado}`
-                : `ANT-${numeroFormateado}`,
+            id_transaccion: `abono-${t.id_trabajo}`,
+            numero_comprobante: `ANT-${numeroFormateado}`,
             nombre_completo: t.nombre_completo || "Cliente del Taller",
             telefono: t.telefono,
-            descripcion_producto: t.descripcion_producto,
+            descripcion_producto: `${t.descripcion_producto} (Abono inicial)`,
             metodo_pago: "Efectivo",
             total: parseFloat(t.abono),
             fecha_emision:
-              t.fecha_entrega_prometida || new Date().toISOString(),
-            detalles_adicionales: "Abono histórico no facturado formalmente",
-            es_anticipo: t.estado !== "Entregado",
+              t.fecha_ingreso ||
+              t.fecha_entrega_prometida ||
+              new Date().toISOString(),
+            detalles_adicionales: "Abono registrado al crear la orden",
+            es_anticipo: true,
+            // NUEVOS CAMPOS PARA EL PDF DETALLADO:
+            articulos: t.articulos || [],
+            precio_total_orden: parseFloat(t.precio || 0),
+            abono_pagado: parseFloat(t.abono || 0),
+            tipo_recibo: "anticipo",
           });
+        }
+      });
+
+      // ====================================================================
+      // 2. REGISTRAR LOS COBROS FINALES / NOTAS DE VENTA
+      // ====================================================================
+      notasReales.forEach((nota) => {
+        const trabajoAsociado = trabajos.find(
+          (t) => t.id_trabajo === nota.id_trabajo,
+        );
+        let saldoCobrado = parseFloat(nota.total || 0);
+        let esPagoDeSaldo = false;
+
+        if (trabajoAsociado) {
+          const precioTotal = parseFloat(trabajoAsociado.precio || 0);
+          const abonoPrevio = parseFloat(trabajoAsociado.abono || 0);
+          saldoCobrado = precioTotal - abonoPrevio;
+          if (abonoPrevio > 0) esPagoDeSaldo = true;
+        }
+
+        if (saldoCobrado > 0) {
+          let numComprobante = nota.numero_comprobante || "";
+          if (numComprobante.includes("COMPROBANTE-")) {
+            const num = numComprobante.split("-")[1];
+            numComprobante = `NV-${String(num).padStart(5, "0")}`;
+          }
+
+          if (trabajoAsociado) {
+            catalogoCompleto.push({
+              id_transaccion: `real-${nota.id_nota_venta}`,
+              numero_comprobante: numComprobante,
+              nombre_completo: nota.nombre_completo,
+              telefono: nota.telefono,
+              descripcion_producto:
+                nota.descripcion_producto +
+                (esPagoDeSaldo ? " (Cobro de saldo final)" : ""),
+              metodo_pago: nota.metodo_pago,
+              total: saldoCobrado,
+              fecha_emision: nota.fecha_emision,
+              detalles_adicionales: nota.detalles_adicionales,
+              es_anticipo: false,
+              // NUEVOS CAMPOS PARA EL PDF DETALLADO:
+              articulos: trabajoAsociado.articulos || [],
+              precio_total_orden: parseFloat(trabajoAsociado.precio || 0),
+              abono_previo: parseFloat(trabajoAsociado.abono || 0),
+              saldo_pagado: saldoCobrado,
+              tipo_recibo: "saldo",
+            });
+          } else {
+            // Nota de venta manual (Sin orden asociada)
+            catalogoCompleto.push({
+              id_transaccion: `real-${nota.id_nota_venta}`,
+              numero_comprobante: numComprobante,
+              nombre_completo: nota.nombre_completo,
+              telefono: nota.telefono,
+              descripcion_producto: nota.descripcion_producto,
+              metodo_pago: nota.metodo_pago,
+              total: saldoCobrado,
+              fecha_emision: nota.fecha_emision,
+              detalles_adicionales: nota.detalles_adicionales,
+              es_anticipo: false,
+              articulos: [],
+              precio_total_orden: saldoCobrado,
+              tipo_recibo: "directo",
+            });
+          }
         }
       });
 
@@ -102,7 +149,6 @@ const Finanzas = () => {
     cargarDatos();
   }, []);
 
-  // Lógica para procesar la fecha elegida en el modal
   const manejarSeleccionFecha = (fecha) => {
     setFechaSeleccionada(fecha);
     setFiltroTiempo("calendario");
@@ -119,17 +165,12 @@ const Finanzas = () => {
     let cumpleTiempo = true;
 
     if (filtroTiempo !== "todas" && tx.fecha_emision) {
-      // Normalizamos la fecha de la transacción (Regla de las 21:00)
       const dTx = new Date(tx.fecha_emision);
-      if (dTx.getHours() >= 21) {
-        dTx.setDate(dTx.getDate() + 1);
-      }
+      if (dTx.getHours() >= 21) dTx.setDate(dTx.getDate() + 1);
       dTx.setHours(0, 0, 0, 0);
 
       const dHoy = new Date();
-      if (dHoy.getHours() >= 21) {
-        dHoy.setDate(dHoy.getDate() + 1);
-      }
+      if (dHoy.getHours() >= 21) dHoy.setDate(dHoy.getDate() + 1);
       dHoy.setHours(0, 0, 0, 0);
 
       if (filtroTiempo === "hoy") {
@@ -139,7 +180,6 @@ const Finanzas = () => {
         hace7Dias.setDate(dHoy.getDate() - 7);
         cumpleTiempo = dTx >= hace7Dias;
       } else if (filtroTiempo === "calendario" && fechaSeleccionada) {
-        // Validación exacta para el día del calendario
         const dSel = new Date(fechaSeleccionada);
         dSel.setHours(0, 0, 0, 0);
         cumpleTiempo = dTx.getTime() === dSel.getTime();
@@ -170,6 +210,9 @@ const Finanzas = () => {
     const colorPrimario = [15, 23, 42];
     const colorBordes = [148, 163, 184];
 
+    // ==========================================
+    // CABECERA DEL PDF
+    // ==========================================
     doc.setFontSize(26);
     doc.setTextColor(...colorPrimario);
     doc.setFont("helvetica", "bold");
@@ -233,6 +276,9 @@ const Finanzas = () => {
     doc.text(mes, 36.5, 55, { align: "center" });
     doc.text(anio, 51.5, 55, { align: "center" });
 
+    // ==========================================
+    // DATOS DEL CLIENTE
+    // ==========================================
     doc.setFontSize(10);
     doc.setFont("helvetica", "bold");
     doc.text("Cliente:", 14, 70);
@@ -246,14 +292,33 @@ const Finanzas = () => {
     doc.text(tx.telefono || "N/A", 148, 70);
     doc.line(148, 71, 196, 71);
 
-    const tableColumn = ["CANT.", "DESCRIPCIÓN", "TOTAL"];
-    const tableRows = [
-      [
+    // ==========================================
+    // TABLA DINÁMICA DE ARTÍCULOS
+    // ==========================================
+    const tableColumn = ["CANT.", "DESCRIPCIÓN DEL ARTÍCULO", "V. UNITARIO"];
+    let tableRows;
+
+    // Si existen artículos desglosados, creamos una fila por cada uno
+    if (
+      tx.articulos &&
+      Array.isArray(tx.articulos) &&
+      tx.articulos.length > 0
+    ) {
+      tableRows = tx.articulos.map((art) => [
         "1",
-        tx.descripcion_producto || "Servicio de reparación",
-        `$${parseFloat(tx.total).toFixed(2)}`,
-      ],
-    ];
+        `${art.producto || ""} ${art.reparacion ? `(${art.reparacion})` : ""}`,
+        `$${parseFloat(art.precio || 0).toFixed(2)}`,
+      ]);
+    } else {
+      // Si no hay artículos (ej. nota manual), ponemos todo en una línea
+      tableRows = [
+        [
+          "1",
+          tx.descripcion_producto || "Servicio de reparación",
+          `$${parseFloat(tx.precio_total_orden || tx.total).toFixed(2)}`,
+        ],
+      ];
+    }
 
     autoTable(doc, {
       startY: 82,
@@ -269,35 +334,88 @@ const Finanzas = () => {
         halign: "center",
       },
       bodyStyles: { lineColor: colorBordes, lineWidth: 0.2 },
-      styles: { fontSize: 10, cellPadding: 5 },
+      styles: { fontSize: 9, cellPadding: 5 },
       columnStyles: {
         0: { cellWidth: 20, halign: "center" },
-        1: { cellWidth: 126 },
-        2: { cellWidth: 36, halign: "center", fontStyle: "bold" },
+        1: { cellWidth: 130 },
+        2: { cellWidth: 32, halign: "center", fontStyle: "bold" },
       },
     });
 
+    // ==========================================
+    // SECCIÓN DE TOTALES INTELIGENTE
+    // ==========================================
     const finalY = doc.lastAutoTable.finalY;
 
     doc.setDrawColor(...colorBordes);
     doc.setFillColor(248, 250, 252);
-    doc.rect(140, finalY, 56, 10, "FD");
 
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "bold");
-    doc.text("TOTAL", 150, finalY + 6.5);
-    doc.setTextColor(...colorPrimario);
-    doc.text(`$${parseFloat(tx.total).toFixed(2)}`, 185, finalY + 6.5, {
-      align: "right",
-    });
+    if (tx.tipo_recibo === "anticipo") {
+      // Bloque para Anticipos (3 líneas)
+      doc.rect(120, finalY, 76, 22, "FD");
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.text("TOTAL ORDEN:", 125, finalY + 6);
+      doc.text(`$${tx.precio_total_orden.toFixed(2)}`, 190, finalY + 6, {
+        align: "right",
+      });
 
+      doc.text("ABONO (ESTE RECIBO):", 125, finalY + 12);
+      doc.text(`$${tx.abono_pagado.toFixed(2)}`, 190, finalY + 12, {
+        align: "right",
+      });
+
+      doc.setFont("helvetica", "bold");
+      doc.text("SALDO PENDIENTE:", 125, finalY + 18);
+      doc.text(
+        `$${(tx.precio_total_orden - tx.abono_pagado).toFixed(2)}`,
+        190,
+        finalY + 18,
+        { align: "right" },
+      );
+    } else if (tx.tipo_recibo === "saldo") {
+      // Bloque para Saldo Final (3 líneas)
+      doc.rect(120, finalY, 76, 22, "FD");
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.text("TOTAL ORDEN:", 125, finalY + 6);
+      doc.text(`$${tx.precio_total_orden.toFixed(2)}`, 190, finalY + 6, {
+        align: "right",
+      });
+
+      doc.text("ABONO PREVIO:", 125, finalY + 12);
+      doc.text(`$${tx.abono_previo.toFixed(2)}`, 190, finalY + 12, {
+        align: "right",
+      });
+
+      doc.setFont("helvetica", "bold");
+      doc.text("TOTAL PAGADO HOY:", 125, finalY + 18);
+      doc.text(`$${tx.saldo_pagado.toFixed(2)}`, 190, finalY + 18, {
+        align: "right",
+      });
+    } else {
+      // Bloque Clásico para cobro completo o manual (1 línea)
+      doc.rect(130, finalY, 66, 10, "FD");
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "bold");
+      doc.text("TOTAL PAGADO", 135, finalY + 6.5);
+      doc.text(`$${parseFloat(tx.total).toFixed(2)}`, 190, finalY + 6.5, {
+        align: "right",
+      });
+    }
+
+    // ==========================================
+    // TEXTO LEGAL INFERIOR
+    // ==========================================
     doc.setFontSize(8);
     doc.setTextColor(100, 116, 139);
+    doc.setFont("helvetica", "normal");
+    const yTextoLegal = finalY + (tx.tipo_recibo !== "directo" ? 35 : 25);
     const legalText =
       "Esta nota de venta es un documento de control interno para la entrega y recepción de servicios/productos en el taller. NO ES VÁLIDA COMO FACTURA, no sustenta crédito tributario y no está sujeta a fines legales o tributarios según la normativa vigente del SRI.";
-    doc.text(legalText, 105, finalY + 25, { align: "center", maxWidth: 180 });
+    doc.text(legalText, 105, yTextoLegal, { align: "center", maxWidth: 180 });
 
-    doc.save(`NotaVenta_${tx.numero_comprobante}.pdf`);
+    doc.save(`Comprobante_${tx.numero_comprobante}.pdf`);
   };
 
   return (
@@ -332,7 +450,7 @@ const Finanzas = () => {
                   key={rango.id}
                   onClick={() => {
                     setFiltroTiempo(rango.id);
-                    setFechaSeleccionada(null); // Limpiamos la fecha custom si eligen otra opción
+                    setFechaSeleccionada(null);
                   }}
                   className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${
                     filtroTiempo === rango.id
@@ -345,7 +463,6 @@ const Finanzas = () => {
               ))}
             </div>
 
-            {/* BOTÓN DEL CALENDARIO */}
             <button
               onClick={() => setMostrarCalendario(true)}
               className={`p-2 rounded-xl border-2 transition-all shadow-sm ${
@@ -378,7 +495,6 @@ const Finanzas = () => {
           setMostrarDropdownMetodo={setMostrarDropdownMetodo}
           formatearDinero={formatearDinero}
           onDescargarPDF={descargarPDF}
-          // Pasamos el estado para el título
           filtroTiempo={filtroTiempo}
           fechaSeleccionada={fechaSeleccionada}
         />

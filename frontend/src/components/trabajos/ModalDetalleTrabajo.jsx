@@ -39,6 +39,41 @@ const ModalDetalleTrabajo = ({
     });
   };
 
+  // ==============================================================================
+  // FUNCIÓN: AUTOMATIZACIÓN DE WHATSAPP
+  // ==============================================================================
+  const dispararWhatsApp = (clienteNombre, telefono, saldoPendiente) => {
+    if (!telefono) {
+      alert(
+        "Nota: El cliente no tiene un teléfono registrado. El estado se guardó, pero no se pudo abrir WhatsApp.",
+      );
+      return;
+    }
+
+    // 1. Limpiamos el número de cualquier espacio o formato raro
+    let numLimpio = String(telefono).replace(/\D/g, "");
+
+    // 2. Si empieza con 0, lo cambiamos por el código de Ecuador (593)
+    if (numLimpio.startsWith("0")) {
+      numLimpio = "593" + numLimpio.substring(1);
+    }
+
+    // 3. Construimos el texto del saldo si es que debe algo
+    let textoSaldo = "";
+    if (saldoPendiente > 0) {
+      textoSaldo = ` Recuerda que tu saldo pendiente a cancelar es de $${saldoPendiente.toFixed(2)}.`;
+    }
+
+    // 4. Redactamos el nuevo mensaje mucho más natural y directo
+    const mensaje = `¡Hola ${clienteNombre}! Te saludamos de Zapatería y Maletería Daniel. Te informamos que tu trabajo ya está LISTO.${textoSaldo} Puedes pasar a retirarlo cuando gustes.`;
+
+    // 5. Disparamos la apertura de WhatsApp en la tablet/PC
+    window.open(
+      `https://wa.me/${numLimpio}?text=${encodeURIComponent(mensaje)}`,
+      "_blank",
+    );
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
       <div className="bg-white rounded-[2.5rem] border-2 border-slate-100 max-w-2xl w-full shadow-2xl flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-200 overflow-hidden">
@@ -84,11 +119,29 @@ const ModalDetalleTrabajo = ({
             <span className="font-bold text-slate-600 text-lg">
               Estado Actual de la Orden:
             </span>
+
+            {/* AQUÍ ESTÁ LA MAGIA DEL CAMBIO DE ESTADO Y WHATSAPP */}
             <select
               value={trabajoDetalle.estado}
-              onChange={(e) =>
-                cambiarEstado(trabajoDetalle.id_trabajo, e.target.value)
-              }
+              onChange={(e) => {
+                const nuevoEstado = e.target.value;
+
+                // 1. Ejecutamos tu función normal para guardar en la base de datos
+                cambiarEstado(trabajoDetalle.id_trabajo, nuevoEstado);
+
+                // 2. Si el nuevo estado es "Listo", calculamos el saldo y lanzamos WhatsApp
+                if (nuevoEstado === "Listo") {
+                  const precioTotal = parseFloat(trabajoDetalle.precio || 0);
+                  const abonoRealizado = parseFloat(trabajoDetalle.abono || 0);
+                  const saldo = precioTotal - abonoRealizado;
+
+                  dispararWhatsApp(
+                    trabajoDetalle.nombre_completo,
+                    trabajoDetalle.telefono,
+                    saldo,
+                  );
+                }
+              }}
               disabled={trabajoDetalle.estado === "Entregado"}
               className="w-full sm:w-auto border-2 border-slate-200 rounded-2xl px-5 py-2.5 font-bold text-slate-800 outline-none focus:border-taller-500 disabled:opacity-50 text-md bg-white shadow-sm cursor-pointer"
             >

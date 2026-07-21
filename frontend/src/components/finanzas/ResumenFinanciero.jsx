@@ -7,7 +7,7 @@ const ResumenFinanciero = ({
   formatearDinero,
 }) => {
   return (
-    <div className="shrink-0 bg-white p-4 md:p-5 rounded-[2rem] shadow-sm border border-slate-200">
+    <div className="shrink-0 bg-white p-4 md:p-5 .rounded-[2rem] shadow-sm border border-slate-200">
       <h3 className="text-lg font-bold text-slate-500 mb-4 flex items-center gap-2">
         <TrendingUp size={20} className="text-emerald-500" /> Resumen de
         Ingresos

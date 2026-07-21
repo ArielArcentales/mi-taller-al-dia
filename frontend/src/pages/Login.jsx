@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import PantallaCarga from "../components/PantallaCarga";
-import FormularioLogin from "../components/FormularioLogin";
-import ModalRecuperarClave from "../components/ModalRecuperarClave"; // <-- Nuevo import
+import PantallaCarga from "../components/comunes/PantallaCarga";
+import FormularioLogin from "../components/usuarios/FormularioLogin";
+import ModalRecuperarClave from "../components/usuarios/ModalRecuperarClave"; // <-- Nuevo import
 
 import foto1 from "../assets/images/foto1.png";
 import foto2 from "../assets/images/foto2.png";

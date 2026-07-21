@@ -1,16 +1,14 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 
 import Login from "./pages/Login";
-import DashboardLayout from "./components/DashboardLayout";
+import DashboardLayout from "./components/comunes/DashboardLayout";
 import DashboardInicio from "./pages/DashboardInicio";
 import Clientes from "./pages/Clientes";
 import Trabajos from "./pages/Trabajos";
 import Inventario from "./pages/Inventario";
 import Finanzas from "./pages/Finanzas";
-// 1. IMPORTAMOS EL NUEVO COMPONENTE DE USUARIOS
 import GestionUsuarios from "./pages/GestionUsuarios";
-
-import ProtectedRoute from "./components/ProtectedRoute";
+import ProtectedRoute from "./components/comunes/ProtectedRoute";
 
 function App() {
   return (

@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import FormularioCliente from "../components/FormularioCliente";
-import DirectorioClientes from "../components/DirectorioClientes";
-import ModalDetalleCliente from "../components/ModalDetalleCliente";
-import ModalAnularCliente from "../components/ModalAnularCliente";
+import FormularioCliente from "../components/clientes/FormularioCliente";
+import DirectorioClientes from "../components/clientes/DirectorioClientes";
+import ModalDetalleCliente from "../components/clientes/ModalDetalleCliente";
+import ModalAnularCliente from "../components/clientes/ModalAnularCliente";
 
 const Clientes = () => {
   const [clientes, setClientes] = useState([]);

@@ -24,11 +24,21 @@ const crearTrabajo = async (
   return result.rows[0];
 };
 
-const obtenerTrabajos = async (estado = "") => {
+const obtenerTrabajos = async (estado = null) => {
   let query = `
-    SELECT t.*, c.nombre_completo, c.telefono 
+    SELECT 
+      t.id_trabajo, 
+      t.descripcion_producto, 
+      t.descripcion_reparacion, 
+      t.precio, 
+      t.abono, 
+      t.fecha_entrega_prometida, 
+      t.estado, 
+      t.fecha_ingreso,
+      c.nombre_completo,
+      c.telefono 
     FROM trabajos t
-    JOIN clientes c ON t.id_cliente = c.id_cliente
+    INNER JOIN clientes c ON t.id_cliente = c.id_cliente
   `;
 
   const params = [];
