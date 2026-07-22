@@ -1,16 +1,15 @@
-//Importar la clase 'Pool' de la librería 'pg' (node-postgres)//
+// Importar la clase 'Pool' de la librería 'pg' (node-postgres)
 const { Pool } = require("pg");
-//Cargar las variables definidas en el archivo .env//
+// Cargar las variables definidas en el archivo .env
 require("dotenv").config();
 
-//Crear la instancia de conexiones (Pool)//
+// Crear la instancia de conexión (Pool) apuntando a la nube
 const pool = new Pool({
-  user: process.env.DB_USER,
-  host: process.env.DB_HOST,
-  database: process.env.DB_NAME,
-  password: process.env.DB_PASSWORD,
-  port: process.env.DB_PORT,
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false, // Obligatorio para conectarse a servicios en la nube como Supabase
+  },
 });
 
-//Exportar este puente de conexión//
+// Exportar este puente de conexión
 module.exports = pool;
