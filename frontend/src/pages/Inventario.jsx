@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
+import axiosClient from "../api/axiosClient";
 import FormularioInventario from "../components/inventario/FormularioInventario";
 import DirectorioInventario from "../components/inventario/DirectorioInventario";
 import ModalAjusteStock from "../components/inventario/ModalAjusteStock";
@@ -71,13 +71,7 @@ const Inventario = () => {
   const obtenerInventario = async (termino = "") => {
     setCargandoLista(true);
     try {
-      const token = localStorage.getItem("token");
-      const res = await axios.get(
-        `http://localhost:3000/api/inventario?q=${termino}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
+      const res = await axiosClient.get(`/inventario?q=${termino}`);
       setInventario(res.data || []);
     } catch (error) {
       console.error(error);
@@ -126,8 +120,6 @@ const Inventario = () => {
     setGuardando(true);
 
     try {
-      const token = localStorage.getItem("token");
-      const headers = { Authorization: `Bearer ${token}` };
       const payload = {
         ...formulario,
         cantidad_actual: parseInt(formulario.cantidad_actual || 0),
@@ -138,19 +130,13 @@ const Inventario = () => {
       };
 
       if (idEdicion) {
-        await axios.put(
-          `http://localhost:3000/api/inventario/${idEdicion}`,
-          payload,
-          { headers },
-        );
+        await axiosClient.put(`/inventario/${idEdicion}`, payload);
         setMensaje({
           texto: "¡Datos del material actualizados!",
           tipo: "exito",
         });
       } else {
-        await axios.post("http://localhost:3000/api/inventario", payload, {
-          headers,
-        });
+        await axiosClient.post("/inventario", payload);
         setMensaje({ texto: "¡Material registrado con éxito!", tipo: "exito" });
       }
       cancelarEdicion();
@@ -208,7 +194,6 @@ const Inventario = () => {
 
     setGuardandoAjuste(true);
     try {
-      const token = localStorage.getItem("token");
       const nuevoTotal = esEntrada
         ? stockActual + cantidadModificar
         : stockActual - cantidadModificar;
@@ -218,13 +203,11 @@ const Inventario = () => {
         motivo: modalAjuste.motivo,
       };
 
-      await axios.put(
-        `http://localhost:3000/api/inventario/${modalAjuste.producto.id_producto}`,
+      await axiosClient.put(
+        `/inventario/${modalAjuste.producto.id_producto}`,
         payload,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
       );
+
       setModalAjuste({
         visible: false,
         producto: null,
@@ -247,13 +230,7 @@ const Inventario = () => {
 
   const ejecutarArchivado = async () => {
     try {
-      const token = localStorage.getItem("token");
-      await axios.delete(
-        `http://localhost:3000/api/inventario/${productoAArchivar.id_producto}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
+      await axiosClient.delete(`/inventario/${productoAArchivar.id_producto}`);
       obtenerInventario(busqueda);
       setProductoAArchivar(null);
       setMensaje({ texto: "Material archivado correctamente.", tipo: "exito" });
@@ -269,12 +246,8 @@ const Inventario = () => {
     setProductoHistorial(producto);
     setCargandoHistorial(true);
     try {
-      const token = localStorage.getItem("token");
-      const res = await axios.get(
-        `http://localhost:3000/api/inventario/${producto.id_producto}/historial`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
+      const res = await axiosClient.get(
+        `/inventario/${producto.id_producto}/historial`,
       );
       setHistorial(res.data || []);
     } catch (error) {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
+import axiosClient from "../api/axiosClient";
 import FormularioCliente from "../components/clientes/FormularioCliente";
 import DirectorioClientes from "../components/clientes/DirectorioClientes";
 import ModalDetalleCliente from "../components/clientes/ModalDetalleCliente";
@@ -26,11 +26,7 @@ const Clientes = () => {
   const obtenerClientes = async (termino = "") => {
     setCargandoLista(true);
     try {
-      const token = localStorage.getItem("token");
-      const respuesta = await axios.get(
-        `http://localhost:3000/api/clientes?q=${termino}`,
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
+      const respuesta = await axiosClient.get(`/clientes?q=${termino}`);
       setClientes(respuesta.data);
     } catch (error) {
       console.error("Error al obtener clientes:", error);
@@ -74,20 +70,11 @@ const Clientes = () => {
 
     setGuardando(true);
     try {
-      const token = localStorage.getItem("token");
       if (modoEdicion) {
-        await axios.put(
-          `http://localhost:3000/api/clientes/${modoEdicion}`,
-          datosFormulario,
-          { headers: { Authorization: `Bearer ${token}` } },
-        );
+        await axiosClient.put(`/clientes/${modoEdicion}`, datosFormulario);
         setMensaje({ texto: "¡Cliente actualizado con éxito!", tipo: "exito" });
       } else {
-        await axios.post(
-          "http://localhost:3000/api/clientes",
-          datosFormulario,
-          { headers: { Authorization: `Bearer ${token}` } },
-        );
+        await axiosClient.post("/clientes", datosFormulario);
         setMensaje({ texto: "¡Cliente registrado con éxito!", tipo: "exito" });
       }
       cancelarEdicion();
@@ -121,11 +108,7 @@ const Clientes = () => {
 
   const confirmarAnulacion = async () => {
     try {
-      const token = localStorage.getItem("token");
-      await axios.delete(
-        `http://localhost:3000/api/clientes/${clienteAAnular.id_cliente}`,
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
+      await axiosClient.delete(`/clientes/${clienteAAnular.id_cliente}`);
       setMensaje({ texto: "Cliente eliminado del sistema.", tipo: "exito" });
       obtenerClientes();
     } catch (error) {

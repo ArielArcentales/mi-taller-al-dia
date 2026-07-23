@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
+import axiosClient from "../api/axiosClient";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { Calendar } from "lucide-react";
@@ -23,12 +23,9 @@ const Finanzas = () => {
   const obtenerLibroMayor = async () => {
     setCargando(true);
     try {
-      const token = localStorage.getItem("token");
-      const headers = { Authorization: `Bearer ${token}` };
-
       const [resNotas, resTrabajos] = await Promise.all([
-        axios.get("http://localhost:3000/api/notas-venta", { headers }),
-        axios.get("http://localhost:3000/api/trabajos", { headers }),
+        axiosClient.get("/notas-venta"),
+        axiosClient.get("/trabajos"),
       ]);
 
       const notasReales = resNotas.data || [];

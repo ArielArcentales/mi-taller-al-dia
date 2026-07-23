@@ -14,8 +14,7 @@ import {
   Bell,
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import axios from "axios";
-
+import axiosClient from "../api/axiosClient";
 import ModalTrabajosAnulados from "../components/trabajos/ModalTrabajosAnulados";
 import ModalGenerarReporte from "../components/finanzas/ModalGenerarReporte";
 
@@ -52,13 +51,10 @@ const DashboardInicio = () => {
   useEffect(() => {
     const cargarDashboard = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const headers = { Authorization: `Bearer ${token}` };
-
         const [resDashboard, resNotas, resTrabajos] = await Promise.all([
-          axios.get("http://localhost:3000/api/dashboard", { headers }),
-          axios.get("http://localhost:3000/api/notas-venta", { headers }),
-          axios.get("http://localhost:3000/api/trabajos", { headers }),
+          axiosClient.get("/dashboard"),
+          axiosClient.get("/notas-venta"),
+          axiosClient.get("/trabajos"),
         ]);
 
         setDatos(resDashboard.data);
@@ -74,6 +70,7 @@ const DashboardInicio = () => {
           if (d.getHours() >= 21) d.setDate(d.getDate() + 1);
           return d.toDateString();
         };
+        //... (el resto de tu lógica se mantiene igual)
 
         const hoyContableStr = obtenerFechaContable(new Date());
 

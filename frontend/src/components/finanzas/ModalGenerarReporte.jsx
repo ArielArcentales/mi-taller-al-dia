@@ -1,5 +1,5 @@
 import { useState } from "react";
-import axios from "axios";
+import axiosClient from "../../api/axiosClient";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { X, FileText, Calendar, Loader2, Download } from "lucide-react";
@@ -30,13 +30,11 @@ const ModalGenerarReporte = ({ onClose }) => {
   const generarPDF = async () => {
     setCargando(true);
     try {
-      const token = localStorage.getItem("token");
-      const headers = { Authorization: `Bearer ${token}` };
-
-      const res = await axios.get(
-        `http://localhost:3000/api/reportes?inicio=${fechaInicio}&fin=${fechaFin}`,
-        { headers },
+      // El token y la URL base ya se manejan en axiosClient
+      const res = await axiosClient.get(
+        `/reportes?inicio=${fechaInicio}&fin=${fechaFin}`,
       );
+
       const {
         finanzas,
         trabajos,

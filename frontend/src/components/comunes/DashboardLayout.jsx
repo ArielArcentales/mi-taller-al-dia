@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Outlet, NavLink, useNavigate, useLocation } from "react-router-dom";
-import axios from "axios";
+import axiosClient from "../../api/axiosClient";
 import {
   LayoutDashboard,
   Users,
@@ -45,9 +45,9 @@ const DashboardLayout = () => {
     // 2. Verificar estado de mantenimiento
     const verificarMantenimiento = async () => {
       try {
-        const res = await axios.get(
-          "http://localhost:3000/api/usuarios/mantenimiento",
-        );
+        // Usamos axiosClient y dejamos solo la ruta final
+        const res = await axiosClient.get("/usuarios/mantenimiento");
+
         setMantenimientoActivo(res.data.modo_mantenimiento);
       } catch (error) {
         console.error("No se pudo verificar el estado del sistema", error);

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import axiosClient from "../api/axiosClient";
 import PantallaCarga from "../components/comunes/PantallaCarga";
 import FormularioLogin from "../components/usuarios/FormularioLogin";
 import ModalRecuperarClave from "../components/usuarios/ModalRecuperarClave"; // <-- Nuevo import
@@ -61,13 +61,10 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      const respuesta = await axios.post(
-        "http://localhost:3000/api/usuarios/login",
-        {
-          username: credenciales.usuario,
-          password: credenciales.password,
-        },
-      );
+      const respuesta = await axiosClient.post("/usuarios/login", {
+        username: credenciales.usuario,
+        password: credenciales.password,
+      });
 
       localStorage.setItem("token", respuesta.data.token);
       localStorage.setItem("usuario", JSON.stringify(respuesta.data.usuario));

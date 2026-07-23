@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
+import axiosClient from "../api/axiosClient";
 import {
   Clock,
   PlayCircle,
@@ -44,24 +44,16 @@ const Trabajos = () => {
 
   const obtenerDatos = async () => {
     try {
-      const token = localStorage.getItem("token");
-      const res = await axios.get(`http://localhost:3000/api/trabajos`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await axiosClient.get(`/trabajos`);
       setTrabajos(res.data || []);
     } catch (error) {
       console.error("Error al obtener trabajos:", error);
     }
   };
-
   useEffect(() => {
     const inicializarPantalla = async () => {
-      const token = localStorage.getItem("token");
       try {
-        const resClientes = await axios.get(
-          "http://localhost:3000/api/clientes",
-          { headers: { Authorization: `Bearer ${token}` } },
-        );
+        const resClientes = await axiosClient.get("/clientes");
         setClientes(resClientes.data || []);
         await obtenerDatos();
       } catch (error) {
@@ -73,12 +65,7 @@ const Trabajos = () => {
 
   const cambiarEstado = async (id, nuevoEstado) => {
     try {
-      const token = localStorage.getItem("token");
-      await axios.put(
-        `http://localhost:3000/api/trabajos/${id}/estado`,
-        { estado: nuevoEstado },
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
+      await axiosClient.put(`/trabajos/${id}/estado`, { estado: nuevoEstado });
       if (trabajoDetalle && trabajoDetalle.id_trabajo === id) {
         setTrabajoDetalle({ ...trabajoDetalle, estado: nuevoEstado });
       }
@@ -91,7 +78,6 @@ const Trabajos = () => {
   const ejecutarEntrega = async () => {
     if (!trabajoAEntregar) return;
     try {
-      const token = localStorage.getItem("token");
       const payloadNota = {
         id_trabajo: trabajoAEntregar.id_trabajo,
         subtotal: parseFloat(trabajoAEntregar.precio),
@@ -101,9 +87,9 @@ const Trabajos = () => {
         detalles_adicionales:
           "Cobro generado desde la pantalla de Órdenes de Trabajo",
       };
-      await axios.post("http://localhost:3000/api/notas-venta", payloadNota, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+
+      await axiosClient.post("/notas-venta", payloadNota);
+
       obtenerDatos();
       setTrabajoAEntregar(null);
       setMetodoPagoFinal("Efectivo");
@@ -114,11 +100,7 @@ const Trabajos = () => {
 
   const ejecutarEliminacion = async () => {
     try {
-      const token = localStorage.getItem("token");
-      await axios.delete(
-        `http://localhost:3000/api/trabajos/${trabajoAEliminar.id_trabajo}`,
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
+      await axiosClient.delete(`/trabajos/${trabajoAEliminar.id_trabajo}`);
       obtenerDatos();
       setTrabajoAEliminar(null);
     } catch (error) {
@@ -169,23 +151,16 @@ const Trabajos = () => {
 
     setGuardando(true);
     try {
-      const token = localStorage.getItem("token");
       const payload = {
         ...formulario,
         abono: formulario.abono ? parseFloat(formulario.abono) : 0,
       };
 
       if (idEdicion) {
-        await axios.put(
-          `http://localhost:3000/api/trabajos/${idEdicion}`,
-          payload,
-          { headers: { Authorization: `Bearer ${token}` } },
-        );
+        await axiosClient.put(`/trabajos/${idEdicion}`, payload);
         setMensaje({ texto: "¡Orden actualizada!", tipo: "exito" });
       } else {
-        await axios.post("http://localhost:3000/api/trabajos", payload, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        await axiosClient.post("/trabajos", payload);
         setMensaje({ texto: "¡Orden creada!", tipo: "exito" });
       }
       cancelarEdicion();

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import axios from "axios";
+import axiosClient from "../api/axiosClient";
 import {
   ShieldAlert,
   Users,
@@ -28,13 +28,9 @@ const GestionUsuarios = () => {
   const [guardando, setGuardando] = useState(false);
   const [mensaje, setMensaje] = useState({ texto: "", tipo: "" });
 
-  const getToken = () => localStorage.getItem("token");
-
   const recargarUsuarios = useCallback(async () => {
     try {
-      const res = await axios.get("http://localhost:3000/api/usuarios", {
-        headers: { Authorization: `Bearer ${getToken()}` },
-      });
+      const res = await axiosClient.get("/usuarios");
       setUsuarios(res.data || []);
     } catch (e) {
       console.error("Error al recargar usuarios:", e);
@@ -44,12 +40,9 @@ const GestionUsuarios = () => {
   useEffect(() => {
     const inicializarPanel = async () => {
       try {
-        const headers = { Authorization: `Bearer ${getToken()}` };
         const [resUsuarios, resMant] = await Promise.all([
-          axios.get("http://localhost:3000/api/usuarios", { headers }),
-          axios.get("http://localhost:3000/api/usuarios/mantenimiento", {
-            headers,
-          }),
+          axiosClient.get("/usuarios"),
+          axiosClient.get("/usuarios/mantenimiento"),
         ]);
         setUsuarios(resUsuarios.data || []);
         setMantenimientoActivo(resMant.data?.modo_mantenimiento || false);
@@ -61,18 +54,16 @@ const GestionUsuarios = () => {
     };
     inicializarPanel();
   }, []);
-
   const manejarCambio = (e) =>
     setFormulario({ ...formulario, [e.target.name]: e.target.value });
 
   const alternarMantenimiento = async () => {
     try {
       const nuevoEstado = !mantenimientoActivo;
-      await axios.post(
-        "http://localhost:3000/api/usuarios/mantenimiento",
-        { estado: nuevoEstado },
-        { headers: { Authorization: `Bearer ${getToken()}` } },
-      );
+      await axiosClient.post("/usuarios/mantenimiento", {
+        estado: nuevoEstado,
+      });
+
       setMantenimientoActivo(nuevoEstado);
       setMensaje({
         texto: `Mantenimiento ${nuevoEstado ? "ACTIVADO" : "DESACTIVADO"}`,
@@ -80,7 +71,7 @@ const GestionUsuarios = () => {
       });
       setTimeout(() => setMensaje({ texto: "", tipo: "" }), 3000);
     } catch (e) {
-      console.error("Error al cambiar estado de mantenimiento:", e); // <- Error usado aquí
+      console.error("Error al cambiar estado de mantenimiento:", e);
       alert("Error al cambiar estado");
     }
   };
@@ -92,18 +83,15 @@ const GestionUsuarios = () => {
     }
     setGuardando(true);
     try {
-      const headers = { Authorization: `Bearer ${getToken()}` };
       if (idEdicion) {
-        await axios.put(
-          `http://localhost:3000/api/usuarios/${idEdicion}`,
-          { username: formulario.username, rol: formulario.rol },
-          { headers },
-        );
-      } else {
-        await axios.post("http://localhost:3000/api/usuarios", formulario, {
-          headers,
+        await axiosClient.put(`/usuarios/${idEdicion}`, {
+          username: formulario.username,
+          rol: formulario.rol,
         });
+      } else {
+        await axiosClient.post("/usuarios", formulario);
       }
+
       setIdEdicion(null);
       setFormulario({ username: "", password: "", rol: "operativo" });
       recargarUsuarios();
@@ -128,12 +116,10 @@ const GestionUsuarios = () => {
   const eliminarUsuario = async (id) => {
     if (!window.confirm("¿Eliminar usuario?")) return;
     try {
-      await axios.delete(`http://localhost:3000/api/usuarios/${id}`, {
-        headers: { Authorization: `Bearer ${getToken()}` },
-      });
+      await axiosClient.delete(`/usuarios/${id}`);
       recargarUsuarios();
     } catch (e) {
-      console.error("Error al eliminar el usuario:", e); // <- Error usado aquí
+      console.error("Error al eliminar el usuario:", e);
       alert("Error al eliminar");
     }
   };
