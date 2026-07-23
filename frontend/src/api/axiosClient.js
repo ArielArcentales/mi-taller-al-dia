@@ -1,13 +1,11 @@
 import axios from "axios";
 
-let envUrl = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
-
-const cleanUrl = envUrl.replace(/['"[\]]/g, "").trim();
-
 const axiosClient = axios.create({
-  baseURL: cleanUrl,
+  // Escribimos la URL directamente para ignorar las variables de entorno de Netlify
+  baseURL: "https://mi-taller-al-dia-backend.onrender.com/api",
 });
 
+// Interceptor para inyectar el token automáticamente
 axiosClient.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
   if (token) {
