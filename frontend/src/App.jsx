@@ -1,5 +1,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 
+// IMPORTAMOS LA NUEVA LANDING PAGE
+import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import DashboardLayout from "./components/comunes/DashboardLayout";
 import DashboardInicio from "./pages/DashboardInicio";
@@ -14,7 +16,8 @@ function App() {
   return (
     <Routes>
       {/* Rutas Públicas */}
-      <Route path="/" element={<Navigate to="/login" replace />} />
+      {/* 1. Ahora la ruta raíz ("/") muestra la Landing Page */}
+      <Route path="/" element={<Landing />} />
       <Route path="/login" element={<Login />} />
 
       {/* Rutas Privadas*/}
@@ -39,8 +42,8 @@ function App() {
         <Route path="usuarios" element={<GestionUsuarios />} />
       </Route>
 
-      {/* Ruta 404: Si escriben una URL que no existe, los manda al login */}
-      <Route path="*" element={<Navigate to="/login" replace />} />
+      {/* Ruta 404: Si escriben una URL que no existe, ahora los regresamos a la Landing (o al login) */}
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }

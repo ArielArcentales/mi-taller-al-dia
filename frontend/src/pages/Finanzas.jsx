@@ -13,7 +13,7 @@ const Finanzas = () => {
   const [cargando, setCargando] = useState(false);
 
   const [busqueda, setBusqueda] = useState("");
-  const [filtroTiempo, setFiltroTiempo] = useState("todas");
+  const [filtroTiempo, setFiltroTiempo] = useState("hoy");
   const [filtroMetodo, setFiltroMetodo] = useState("");
   const [mostrarDropdownMetodo, setMostrarDropdownMetodo] = useState(false);
 

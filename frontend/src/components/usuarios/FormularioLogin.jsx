@@ -8,35 +8,35 @@ const FormularioLogin = ({
   onCambio,
   onSubmit,
   onTogglePassword,
-  onForgotPassword, // <-- Recibe la nueva prop
+  onForgotPassword,
 }) => {
   return (
-    <div className="w-full lg:w-[55%] p-8 sm:p-16 xl:p-24 flex flex-col justify-center relative z-10 bg-white">
+    <div className="w-full h-full flex flex-col justify-center px-8 sm:px-12 md:px-16 lg:px-20 xl:px-24 bg-white">
       <div className="mb-10">
-        <h2 className="text-6xl xl:text-7xl font-black text-taller-950 mb-3 tracking-tight">
-          Mi Taller al Día
+        <h2 className="text-4xl lg:text-5xl xl:text-6xl font-black text-taller-950 mb-3 tracking-tight leading-tight">
+          Mi Taller <span className="text-taller-500">al Día</span>
         </h2>
-        <p className="text-taller-700 text-2xl font-medium">
+        <p className="text-slate-500 text-lg lg:text-xl font-bold">
           Ingresa tus datos para gestionar el taller
         </p>
       </div>
 
       {errorMsg && (
-        <div className="mb-8 flex items-center gap-4 bg-red-50 border-2 border-red-200 text-red-700 p-5 rounded-2xl transition-all">
-          <AlertCircle className="shrink-0" size={32} />
-          <p className="text-xl font-bold">{errorMsg}</p>
+        <div className="mb-6 flex items-center gap-3 bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl transition-all shadow-sm">
+          <AlertCircle className="shrink-0" size={24} />
+          <p className="text-sm font-bold">{errorMsg}</p>
         </div>
       )}
 
-      <form className="space-y-10" onSubmit={onSubmit}>
+      <form className="space-y-6" onSubmit={onSubmit}>
         <div>
-          <label className="block text-taller-950 font-black text-lg uppercase tracking-wider mb-3 ml-2">
+          <label className="block text-slate-500 font-bold text-sm uppercase tracking-widest mb-2 ml-1">
             Usuario
           </label>
           <div className="relative group">
             <User
-              className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-taller-500 transition-colors"
-              size={32}
+              className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-taller-600 transition-colors"
+              size={22}
             />
             <input
               type="text"
@@ -44,20 +44,20 @@ const FormularioLogin = ({
               value={credenciales.usuario}
               placeholder="Ej: admin"
               disabled={isLoading}
-              className="w-full pl-16 pr-5 py-6 text-2xl border-2 border-slate-200 rounded-2xl focus:border-taller-800 focus:ring-4 focus:ring-taller-100 outline-none transition-all text-taller-950 font-bold bg-slate-50 disabled:opacity-50"
+              className="w-full pl-14 pr-5 py-4 text-lg border-2 border-slate-200 rounded-2xl focus:border-taller-500 focus:ring-4 focus:ring-taller-100 outline-none transition-all text-slate-800 font-bold bg-slate-50 disabled:opacity-50"
               onChange={onCambio}
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-taller-950 font-black text-lg uppercase tracking-wider mb-3 ml-2">
+          <label className="block text-slate-500 font-bold text-sm uppercase tracking-widest mb-2 ml-1">
             Contraseña
           </label>
           <div className="relative group">
             <Lock
-              className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-taller-500 transition-colors"
-              size={32}
+              className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-taller-600 transition-colors"
+              size={22}
             />
             <input
               type={showPassword ? "text" : "password"}
@@ -65,7 +65,7 @@ const FormularioLogin = ({
               value={credenciales.password}
               placeholder="••••••••"
               disabled={isLoading}
-              className="w-full pl-16 pr-16 py-6 text-2xl border-2 border-slate-200 rounded-2xl focus:border-taller-800 focus:ring-4 focus:ring-taller-100 outline-none transition-all text-taller-950 font-bold bg-slate-50 disabled:opacity-50"
+              className="w-full pl-14 pr-14 py-4 text-lg border-2 border-slate-200 rounded-2xl focus:border-taller-500 focus:ring-4 focus:ring-taller-100 outline-none transition-all text-slate-800 font-bold bg-slate-50 disabled:opacity-50 tracking-widest"
               onChange={onCambio}
             />
 
@@ -73,28 +73,28 @@ const FormularioLogin = ({
               type="button"
               onClick={onTogglePassword}
               disabled={isLoading}
-              className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-taller-500 transition-colors disabled:opacity-50 p-2"
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-taller-600 transition-colors disabled:opacity-50 p-2"
             >
-              {showPassword ? <EyeOff size={32} /> : <Eye size={32} />}
+              {showPassword ? <EyeOff size={22} /> : <Eye size={22} />}
             </button>
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-2 ml-2">
+        <div className="flex flex-row items-center justify-between gap-4 py-2 ml-1">
           <label className="flex items-center space-x-3 cursor-pointer group">
             <input
               type="checkbox"
               disabled={isLoading}
-              className="w-6 h-6 rounded border-slate-300 text-taller-500 focus:ring-taller-500 disabled:opacity-50 cursor-pointer"
+              className="w-5 h-5 rounded border-slate-300 text-taller-600 focus:ring-taller-500 disabled:opacity-50 cursor-pointer"
             />
-            <span className="text-slate-600 font-bold text-xl group-hover:text-taller-950 transition-colors">
+            <span className="text-slate-500 font-bold text-sm group-hover:text-taller-950 transition-colors">
               Recordarme
             </span>
           </label>
           <button
             type="button"
-            onClick={onForgotPassword} // <-- Conectado aquí
-            className="text-taller-700 font-black text-xl hover:text-taller-950 transition-colors text-left"
+            onClick={onForgotPassword}
+            className="text-taller-600 font-bold text-sm hover:text-taller-800 transition-colors text-right underline underline-offset-4"
           >
             ¿Olvidaste tu clave?
           </button>
@@ -103,20 +103,20 @@ const FormularioLogin = ({
         <button
           type="submit"
           disabled={isLoading}
-          className={`w-full flex items-center justify-center gap-4 text-white text-3xl font-black py-6 rounded-2xl transition-all shadow-xl mt-6 
+          className={`w-full flex items-center justify-center gap-3 text-white text-lg font-black py-4 rounded-2xl transition-all mt-6 
             ${
               isLoading
-                ? "bg-taller-800 opacity-80 cursor-not-allowed"
-                : "bg-taller-950 hover:bg-taller-900 active:scale-[0.98] shadow-taller-950/30"
+                ? "bg-slate-300 cursor-not-allowed"
+                : "bg-taller-600 hover:bg-taller-700 active:scale-[0.98] shadow-[0_15px_30px_-10px_rgba(52,160,164,0.5)]"
             }`}
         >
           {isLoading ? (
             <>
-              <Loader2 className="animate-spin" size={36} />
-              <span>Iniciando...</span>
+              <Loader2 className="animate-spin text-slate-500" size={24} />
+              <span className="text-slate-500">Iniciando sesión...</span>
             </>
           ) : (
-            <span>Iniciar Sesión</span>
+            <span>Ingresar al Sistema</span>
           )}
         </button>
       </form>

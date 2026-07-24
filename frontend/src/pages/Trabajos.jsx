@@ -14,6 +14,8 @@ import {
   DollarSign,
   ChevronDown,
   CheckCircle2,
+  Loader2,
+  Wrench,
 } from "lucide-react";
 
 import FormularioTrabajo from "../components/trabajos/FormularioTrabajo";
@@ -31,6 +33,7 @@ const Trabajos = () => {
   const [trabajoAEntregar, setTrabajoAEntregar] = useState(null);
   const [trabajoDetalle, setTrabajoDetalle] = useState(null);
   const [metodoPagoFinal, setMetodoPagoFinal] = useState("Efectivo");
+  const [cargando, setCargando] = useState(false);
 
   const [formulario, setFormulario] = useState({
     id_cliente: "",
@@ -43,11 +46,14 @@ const Trabajos = () => {
   const [mensaje, setMensaje] = useState({ texto: "", tipo: "" });
 
   const obtenerDatos = async () => {
+    setCargando(true);
     try {
       const res = await axiosClient.get(`/trabajos`);
       setTrabajos(res.data || []);
     } catch (error) {
       console.error("Error al obtener trabajos:", error);
+    } finally {
+      setCargando(false);
     }
   };
   useEffect(() => {
@@ -502,11 +508,21 @@ const Trabajos = () => {
               </header>
 
               <div className="flex-1 overflow-y-auto pr-3 custom-scrollbar">
-                {trabajosFiltrados.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-full text-slate-400 text-center gap-1 min-h-75">
-                    <Search size={48} className="text-slate-300 mb-2" />
-                    <p className="text-xl font-black text-slate-400">
-                      No hay resultados
+                {cargando ? (
+                  <div className="flex flex-col items-center justify-center h-full text-slate-400 m-1.5min-h-[300px]">
+                    <Loader2 className="animate-spin mb-3" size={40} />
+                    <p className="text-lg font-bold">Cargando órdenes...</p>
+                  </div>
+                ) : trabajosFiltrados.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full text-slate-400 text-center .min-h-[300px] py-10">
+                    <div className="p-5 bg-slate-100 rounded-full mb-3">
+                      <Wrench size={44} className="text-slate-300" />
+                    </div>
+                    <p className="text-xl font-black text-slate-500 mb-1">
+                      No se encontraron órdenes
+                    </p>
+                    <p className="text-sm text-slate-400">
+                      Usa el formulario para registrar una nueva.
                     </p>
                   </div>
                 ) : (

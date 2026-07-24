@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axiosClient from "../api/axiosClient";
 import PantallaCarga from "../components/comunes/PantallaCarga";
 import FormularioLogin from "../components/usuarios/FormularioLogin";
-import ModalRecuperarClave from "../components/usuarios/ModalRecuperarClave"; // <-- Nuevo import
+import ModalRecuperarClave from "../components/usuarios/ModalRecuperarClave";
 
 import foto1 from "../assets/images/foto1.png";
 import foto2 from "../assets/images/foto2.png";
@@ -14,7 +14,7 @@ const Login = () => {
 
   const [showPassword, setShowPassword] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [showRecoveryModal, setShowRecoveryModal] = useState(false); // <-- Estado del modal
+  const [showRecoveryModal, setShowRecoveryModal] = useState(false);
 
   const [credenciales, setCredenciales] = useState({
     usuario: "",
@@ -96,25 +96,31 @@ const Login = () => {
     <>
       {isLoading && <PantallaCarga texto="Validando credenciales..." />}
 
-      <div className="min-h-screen w-screen flex items-center justify-center p-4 md:p-8 bg-slate-200">
-        <div className="bg-white w-full h-[90vh] rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col lg:flex-row border border-slate-100">
-          <FormularioLogin
-            credenciales={credenciales}
-            isLoading={isLoading}
-            errorMsg={errorMsg}
-            showPassword={showPassword}
-            onCambio={manejarCambio}
-            onSubmit={handleSubmit}
-            onTogglePassword={() => setShowPassword(!showPassword)}
-            onForgotPassword={() => setShowRecoveryModal(true)} // <-- Abre el modal
-          />
+      {/* Contenedor principal idéntico a la Landing Page */}
+      <div className="h-screen w-screen bg-slate-200/80 flex items-center justify-center p-4 md:p-8 font-sans overflow-hidden">
+        {/* Tarjeta Central 50/50 idéntica a la Landing Page */}
+        <div className="w-full .max-w-[1300px] h-full .max-h-[850px] bg-white rounded-[2.5rem] md:rounded-[3rem] shadow-2xl flex flex-col lg:flex-row overflow-hidden relative">
+          {/* LADO IZQUIERDO: Formulario (50%) */}
+          <div className="w-full lg:w-1/2 h-full flex flex-col justify-center relative z-10 bg-white">
+            <FormularioLogin
+              credenciales={credenciales}
+              isLoading={isLoading}
+              errorMsg={errorMsg}
+              showPassword={showPassword}
+              onCambio={manejarCambio}
+              onSubmit={handleSubmit}
+              onTogglePassword={() => setShowPassword(!showPassword)}
+              onForgotPassword={() => setShowRecoveryModal(true)}
+            />
+          </div>
 
-          <div className="hidden lg:flex w-[45%] bg-slate-900 relative overflow-hidden">
+          {/* LADO DERECHO: Slider de Imágenes (50%) */}
+          <div className="hidden lg:flex w-1/2 bg-taller-950 relative overflow-hidden items-center justify-center">
             {slides.map((slide, index) => (
               <div
                 key={index}
                 className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
-                  index === currentSlide ? "opacity-100" : "opacity-0"
+                  index === currentSlide ? "opacity-100 z-10" : "opacity-0 z-0"
                 }`}
               >
                 <img
@@ -122,21 +128,29 @@ const Login = () => {
                   alt={`Slide ${index + 1}`}
                   className="absolute inset-0 w-full h-full object-cover object-center scale-105"
                 />
-                <div className="absolute inset-0 z-10 p-12 xl:p-16 flex flex-col justify-end items-center text-center">
-                  <h3 className="text-white text-3xl xl:text-4xl font-dm italic mb-8 leading-tight drop-shadow-xl max-w-lg">
+
+                {/* Filtros corporativos (Reemplazan el azul genérico por tus colores 'taller') */}
+                <div className="absolute inset-0 bg-taller-950/30 mix-blend-multiply"></div>
+                <div className="absolute inset-0 .bg-gradient-to-t from-taller-950 via-taller-900/60 to-transparent"></div>
+
+                <div className="absolute inset-0 z-20 p-12 xl:p-16 flex flex-col justify-end items-center text-center pb-24">
+                  <h3 className="text-white text-3xl xl:text-4xl font-black mb-8 leading-tight drop-shadow-[0_5px_15px_rgba(0,0,0,0.5)] max-w-lg">
                     {slide.texto}
                   </h3>
                 </div>
               </div>
             ))}
 
-            <div className="absolute bottom-10 left-0 right-0 z-20 flex justify-center space-x-3 pointer-events-auto">
+            {/* Controles del Slider */}
+            <div className="absolute bottom-12 left-0 right-0 z-30 flex justify-center space-x-3 pointer-events-auto">
               {slides.map((_, index) => (
                 <button
                   key={index}
                   onClick={() => setCurrentSlide(index)}
-                  className={`h-3 rounded-full transition-all duration-500 cursor-pointer shadow-lg ${
-                    index === currentSlide ? "w-14 bg-white" : "w-3 bg-white/40"
+                  className={`h-2.5 rounded-full transition-all duration-500 cursor-pointer shadow-md ${
+                    index === currentSlide
+                      ? "w-12 bg-taller-400"
+                      : "w-3 bg-white/40 hover:bg-white/70"
                   }`}
                   aria-label={`Ir a diapositiva ${index + 1}`}
                 />
@@ -146,7 +160,6 @@ const Login = () => {
         </div>
       </div>
 
-      {/* Condicional para renderizar el modal de recuperación */}
       {showRecoveryModal && (
         <ModalRecuperarClave onClose={() => setShowRecoveryModal(false)} />
       )}

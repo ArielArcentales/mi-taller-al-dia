@@ -86,17 +86,20 @@ const DirectorioInventario = ({
 
       <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
         {cargandoLista ? (
-          <div className="flex flex-col items-center justify-center h-full text-slate-400 .min-h-[300px]">
+          <div className="flex flex-col items-center justify-center h-full text-slate-400 min-h-[300px]">
             <Loader2 className="animate-spin mb-3" size={40} />
-            <p className="text-lg font-bold">Cargando inventario</p>
+            <p className="text-lg font-bold">Cargando inventario...</p>
           </div>
         ) : inventarioFiltrado.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-slate-400 text-center .min-h-[300px]">
+          <div className="flex flex-col items-center justify-center h-full text-slate-400 text-center min-h-[300px] py-10">
             <div className="p-5 bg-slate-100 rounded-full mb-3">
               <Package size={44} className="text-slate-300" />
             </div>
-            <p className="text-xl font-black text-slate-500">
-              No hay coincidencias
+            <p className="text-xl font-black text-slate-500 mb-1">
+              No se encontraron materiales
+            </p>
+            <p className="text-sm text-slate-400">
+              Usa el formulario para registrar uno nuevo.
             </p>
           </div>
         ) : (
